@@ -9,7 +9,7 @@ import json
 from typing import List, Dict, Any
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QSplitter, QTabWidget,
-    QApplication, QSizePolicy
+    QApplication, QSizePolicy, QDialog, QMessageBox
 )
 from .message_box_helper import MessageBoxHelper
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
             self.refresh_databases()
             
             # Show success message
-            QMessageBox.information(self, "Connection Success", 
+            MessageBoxHelper.information(self, "Connection Success", 
                                   f"Successfully connected to MongoDB!\n\n{message}")
         else:
             self.connection_state = "failed"
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
             self.status_bar_component.set_connection_status("Connection Failed", "red")
             
             # Show error message
-            QMessageBox.critical(self, "Connection Error", 
+            MessageBoxHelper.critical(self, "Connection Error", 
                                f"Failed to connect to MongoDB:\n\n{message}")
             
             # Update status bar
@@ -355,15 +355,15 @@ class MainWindow(QMainWindow):
             self.toolbar_component.update_toolbar_state(False)
             
             # Show disconnection message
-            QMessageBox.information(self, "Disconnected", "Successfully disconnected from MongoDB.")
+            MessageBoxHelper.information(self, "Disconnected", "Successfully disconnected from MongoDB.")
             
         except Exception as e:
-            QMessageBox.warning(self, "Disconnect Warning", f"Error during disconnect: {str(e)}")
+            MessageBoxHelper.warning(self, "Disconnect Warning", f"Error during disconnect: {str(e)}")
     
     def refresh_databases(self):
         """Refresh the databases tree."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Not Connected", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Not Connected", "Please connect to MongoDB first.")
             return
         
         # Show loading state
@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
             # Handle database loading errors
             error_msg = f"Failed to load databases: {str(e)}"
             self.sidebar.set_error_state(str(e))
-            QMessageBox.critical(self, "Database Error", error_msg)
+            MessageBoxHelper.critical(self, "Database Error", error_msg)
             self.status_bar_component.show_message(f"Failed to refresh databases: {str(e)}", 5000)
         
         finally:
@@ -513,7 +513,7 @@ class MainWindow(QMainWindow):
         logger = logging.getLogger(__name__)
         
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         
         logger.info(f"Inserting document into {self.current_database}/{self.current_collection}")
@@ -526,7 +526,7 @@ class MainWindow(QMainWindow):
         
         if success:
             logger.info(f"Document inserted successfully: {message}")
-            QMessageBox.information(self, "Success", message)
+            MessageBoxHelper.information(self, "Success", message)
             self.operations_panel.clear_insert_form()
             # Refresh documents to show the new document
             self.refresh_documents()
@@ -534,12 +534,12 @@ class MainWindow(QMainWindow):
             self.status_bar_component.show_message("Document inserted successfully", 3000)
         else:
             logger.error(f"Failed to insert document: {message}")
-            QMessageBox.critical(self, "Error", message)
+            MessageBoxHelper.critical(self, "Error", message)
     
     def update_document(self, filter_text: str, update_text: str):
         """Update an existing document."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         
         success, message = self.mongo_service.update_document(
@@ -550,11 +550,11 @@ class MainWindow(QMainWindow):
         )
         
         if success:
-            QMessageBox.information(self, "Success", message)
+            MessageBoxHelper.information(self, "Success", message)
             self.operations_panel.clear_update_form()
             self.refresh_documents()
         else:
-            QMessageBox.critical(self, "Error", message)
+            MessageBoxHelper.critical(self, "Error", message)
     
     def delete_document(self, filter_text: str):
         """Delete a document."""
@@ -562,19 +562,18 @@ class MainWindow(QMainWindow):
         logger = logging.getLogger(__name__)
         
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         
         logger.info(f"Deleting document from {self.current_database}/{self.current_collection}")
         
-        reply = QMessageBox.question(
+        reply = MessageBoxHelper.question(
             self, 
             "Confirm Delete", 
-            "Are you sure you want to delete this document?",
-            QMessageBox.Yes | QMessageBox.No
+            "Are you sure you want to delete this document?"
         )
         
-        if reply == QMessageBox.Yes:
+        if reply:
             success, message = self.mongo_service.delete_document(
                 self.current_database, 
                 self.current_collection, 
@@ -583,7 +582,7 @@ class MainWindow(QMainWindow):
             
             if success:
                 logger.info(f"Document deleted successfully: {message}")
-                QMessageBox.information(self, "Success", message)
+                MessageBoxHelper.information(self, "Success", message)
                 self.operations_panel.clear_delete_form()
                 # Refresh documents to update the table
                 self.refresh_documents()
@@ -591,12 +590,12 @@ class MainWindow(QMainWindow):
                 self.status_bar_component.show_message("Document deleted successfully", 3000)
             else:
                 logger.error(f"Failed to delete document: {message}")
-                QMessageBox.critical(self, "Error", message)
+                MessageBoxHelper.critical(self, "Error", message)
     
     def execute_query(self, query_text: str, limit: int):
         """Execute a query and display results."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         
         documents = self.mongo_service.find_documents(
@@ -735,7 +734,7 @@ class MainWindow(QMainWindow):
         """Handle new connection menu action."""
         # For now, show a simple new connection dialog
         # In a full implementation, this would show a connection configuration dialog
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self, 
             "New Connection", 
             "New connection functionality is currently in development.\n\n"
@@ -751,7 +750,7 @@ class MainWindow(QMainWindow):
         """Handle open connection menu action."""
         # For now, show a simple open connection dialog
         # In a full implementation, this would show saved connections
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self, 
             "Open Connection", 
             "Open connection functionality is currently in development.\n\n"
@@ -766,11 +765,11 @@ class MainWindow(QMainWindow):
     def on_export_data(self):
         """Handle export data menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a database and collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a database and collection first.")
             return
         
         # Show export data dialog
@@ -780,7 +779,7 @@ class MainWindow(QMainWindow):
             
             # For now, show a confirmation
             # In a full implementation, this would actually export the data
-            QMessageBox.information(
+            MessageBoxHelper.information(
                 self, 
                 "Export Data", 
                 f"Export configuration:\n\n"
@@ -795,16 +794,16 @@ class MainWindow(QMainWindow):
     def on_import_data(self):
         """Handle import data menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a database and collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a database and collection first.")
             return
         
         # For now, show a simple import info dialog
         # In a full implementation, this would show a file selection and import dialog
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self, 
             "Import Data", 
             f"Import data into:\n\n"
@@ -821,7 +820,7 @@ class MainWindow(QMainWindow):
     def on_create_database(self):
         """Handle create database menu/toolbar action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         from PySide6.QtWidgets import QInputDialog
@@ -832,36 +831,36 @@ class MainWindow(QMainWindow):
         if ok and db_name.strip():
             success, message = self.mongo_service.create_database(db_name.strip())
             if success:
-                QMessageBox.information(self, "Success", message)
+                MessageBoxHelper.information(self, "Success", message)
                 self.refresh_databases()
             else:
-                QMessageBox.critical(self, "Error", message)
+                MessageBoxHelper.critical(self, "Error", message)
     
     def on_list_databases(self):
         """Handle list databases menu/toolbar action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         databases = self.mongo_service.get_databases()
         if databases:
             db_list = "\n".join([f"• {db}" for db in databases])
-            QMessageBox.information(
+            MessageBoxHelper.information(
                 self, 
                 "Databases", 
                 f"Found {len(databases)} database(s):\n\n{db_list}"
             )
         else:
-            QMessageBox.information(self, "Databases", "No databases found.")
+            MessageBoxHelper.information(self, "Databases", "No databases found.")
     
     def on_rename_database(self):
         """Handle rename database menu/toolbar action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         if not self.current_database:
-            QMessageBox.warning(self, "Warning", "Please select a database first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
             return
         
         from PySide6.QtWidgets import QInputDialog
@@ -873,58 +872,55 @@ class MainWindow(QMainWindow):
         )
         
         if ok and new_name.strip() and new_name.strip() != self.current_database:
-            reply = QMessageBox.question(
+            reply = MessageBoxHelper.question(
                 self,
                 "Confirm Rename",
                 f"Are you sure you want to rename database '{self.current_database}' to '{new_name.strip()}'?\n\n"
-                "This operation will copy all collections and data to the new database.",
-                QMessageBox.Yes | QMessageBox.No
+                "This operation will copy all collections and data to the new database."
             )
             
-            if reply == QMessageBox.Yes:
+            if reply:
                 success, message = self.mongo_service.rename_database(
                     self.current_database, new_name.strip()
                 )
                 if success:
-                    QMessageBox.information(self, "Success", message)
+                    MessageBoxHelper.information(self, "Success", message)
                     self.current_database = new_name.strip()
                     self.refresh_databases()
                 else:
-                    QMessageBox.critical(self, "Error", message)
+                    MessageBoxHelper.critical(self, "Error", message)
     
     def on_delete_database(self):
         """Handle delete database menu/toolbar action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         if not self.current_database:
-            QMessageBox.warning(self, "Warning", "Please select a database first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
             return
         
-        reply = QMessageBox.question(
+        reply = MessageBoxHelper.question(
             self,
             "Confirm Delete",
             f"Are you sure you want to delete database '{self.current_database}'?\n\n"
-            "This action cannot be undone and will permanently remove all data!",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            "This action cannot be undone and will permanently remove all data!"
         )
         
-        if reply == QMessageBox.Yes:
+        if reply:
             success, message = self.mongo_service.delete_database(self.current_database)
             if success:
-                QMessageBox.information(self, "Success", message)
+                MessageBoxHelper.information(self, "Success", message)
                 self.current_database = ""
                 self.current_collection = ""
                 self.refresh_databases()
             else:
-                QMessageBox.critical(self, "Error", message)
+                MessageBoxHelper.critical(self, "Error", message)
     
     def on_add_database(self):
         """Handle add database menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         # Show create database dialog
@@ -937,19 +933,19 @@ class MainWindow(QMainWindow):
                 success, message = self.mongo_service.create_database(database_name)
                 
                 if success:
-                    QMessageBox.information(self, "Success", message)
+                    MessageBoxHelper.information(self, "Success", message)
                     # Refresh the database list to show the new database
                     self.refresh_databases()
                 else:
-                    QMessageBox.critical(self, "Error", message)
+                    MessageBoxHelper.critical(self, "Error", message)
     
     def on_add_collection(self):
         """Handle add collection menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         if not self.current_database:
-            QMessageBox.warning(self, "Warning", "Please select a database first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
             return
         
         # Show create collection dialog
@@ -962,16 +958,16 @@ class MainWindow(QMainWindow):
                 success, message = self.mongo_service.create_collection(self.current_database, collection_name)
                 
                 if success:
-                    QMessageBox.information(self, "Success", message)
+                    MessageBoxHelper.information(self, "Success", message)
                     # Refresh the database list to show the new collection
                     self.refresh_databases()
                 else:
-                    QMessageBox.critical(self, "Error", message)
+                    MessageBoxHelper.critical(self, "Error", message)
     
     def on_query_builder(self):
         """Handle query builder menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         # Show query builder dialog
@@ -996,17 +992,17 @@ class MainWindow(QMainWindow):
                 # Switch to query tab to show results
                 self.tab_widget.setCurrentIndex(2)
             else:
-                QMessageBox.information(self, "Query Results", "No documents found matching the query.")
+                MessageBoxHelper.information(self, "Query Results", "No documents found matching the query.")
     
     def on_performance_monitor(self):
         """Handle performance monitor menu action."""
         if not self.mongo_service.is_connected():
-            QMessageBox.warning(self, "Warning", "Please connect to MongoDB first.")
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
         # For now, show a simple performance info dialog
         # In a full implementation, this would show real-time MongoDB performance metrics
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self, 
             "Performance Monitor", 
             "Performance monitoring is currently in development.\n\n"
@@ -1025,7 +1021,7 @@ class MainWindow(QMainWindow):
             settings = dialog.get_settings()
             # Here you would save the settings to a configuration file
             # For now, just show a confirmation
-            QMessageBox.information(
+            MessageBoxHelper.information(
                 self, 
                 "Settings Saved", 
                 f"Settings have been saved:\n\n"
@@ -1038,7 +1034,7 @@ class MainWindow(QMainWindow):
     def on_documentation(self):
         """Handle documentation menu action."""
         # Show documentation dialog
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self, 
             "Documentation", 
             "AtlasMogo Documentation\n\n"
@@ -1056,7 +1052,7 @@ class MainWindow(QMainWindow):
     def on_rename_database(self, database_name: str):
         """Handle rename database context menu action."""
         # TODO: Implement rename database functionality
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self,
             "Rename Database",
             f"Rename database '{database_name}' functionality will be implemented here."
@@ -1065,17 +1061,15 @@ class MainWindow(QMainWindow):
     def on_delete_database(self, database_name: str):
         """Handle delete database context menu action."""
         # TODO: Implement delete database functionality
-        reply = QMessageBox.question(
+        reply = MessageBoxHelper.question(
             self,
             "Delete Database",
             f"Are you sure you want to delete database '{database_name}'?\n\n"
-            "This action cannot be undone and will delete all collections and documents.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            "This action cannot be undone and will delete all collections and documents."
         )
         
-        if reply == QMessageBox.Yes:
-            QMessageBox.information(
+        if reply:
+            MessageBoxHelper.information(
                 self,
                 "Delete Database",
                 f"Delete database '{database_name}' functionality will be implemented here."
@@ -1084,7 +1078,7 @@ class MainWindow(QMainWindow):
     def on_rename_collection(self, database_name: str, collection_name: str):
         """Handle rename collection context menu action."""
         # TODO: Implement rename collection functionality
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self,
             "Rename Collection",
             f"Rename collection '{collection_name}' in database '{database_name}' functionality will be implemented here."
@@ -1093,17 +1087,15 @@ class MainWindow(QMainWindow):
     def on_delete_collection(self, database_name: str, collection_name: str):
         """Handle delete collection context menu action."""
         # TODO: Implement delete collection functionality
-        reply = QMessageBox.question(
+        reply = MessageBoxHelper.question(
             self,
             "Delete Collection",
             f"Are you sure you want to delete collection '{collection_name}' from database '{database_name}'?\n\n"
-            "This action cannot be undone and will delete all documents in the collection.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            "This action cannot be undone and will delete all documents in the collection."
         )
         
-        if reply == QMessageBox.Yes:
-            QMessageBox.information(
+        if reply:
+            MessageBoxHelper.information(
                 self,
                 "Delete Collection",
                 f"Delete collection '{collection_name}' functionality will be implemented here."
@@ -1124,7 +1116,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.setCurrentIndex(1)  # Operations tab
         
         # Show success message
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self,
             "Insert Document",
             f"Ready to insert document into collection '{collection_name}' in database '{database_name}'.\n\n"
@@ -1140,7 +1132,7 @@ class MainWindow(QMainWindow):
         logger.info(f"View document requested for row {row}")
         
         # TODO: Implement document viewer dialog
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self,
             "View Document",
             f"View document at row {row} functionality will be implemented here."
@@ -1155,7 +1147,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Edit document requested for row {row}")
         
         # TODO: Implement document editor dialog
-        QMessageBox.information(
+        MessageBoxHelper.information(
             self,
             "Edit Document",
             f"Edit document at row {row} functionality will be implemented here."
@@ -1170,58 +1162,56 @@ class MainWindow(QMainWindow):
         logger.info(f"Delete document requested for row {row}")
         
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "No collection selected.")
+            MessageBoxHelper.warning(self, "Warning", "No collection selected.")
             return
         
-        reply = QMessageBox.question(
+        reply = MessageBoxHelper.question(
             self,
             "Confirm Delete",
-            f"Are you sure you want to delete the document at row {row}?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            f"Are you sure you want to delete the document at row {row}?"
         )
         
-        if reply == QMessageBox.Yes:
+        if reply:
             # TODO: Implement actual document deletion by row
             # For now, just remove from table
             if self.data_table.remove_selected_row():
-                QMessageBox.information(self, "Success", "Document removed from table.")
+                MessageBoxHelper.information(self, "Success", "Document removed from table.")
                 # Refresh the documents to update counts
                 self.refresh_documents()
             else:
-                QMessageBox.warning(self, "Warning", "No document selected for deletion.")
+                MessageBoxHelper.warning(self, "Warning", "No document selected for deletion.")
     
     def on_insert_document(self):
         """Handle insert document toolbar action."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         self.tab_widget.setCurrentIndex(1)  # Operations tab
     
     def on_update_document(self):
         """Handle update document toolbar action."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         self.tab_widget.setCurrentIndex(1)  # Operations tab
     
     def on_delete_document(self):
         """Handle delete document toolbar action."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         self.tab_widget.setCurrentIndex(1)  # Operations tab
     
     def on_execute_query(self):
         """Handle execute query toolbar action."""
         if not self.current_database or not self.current_collection:
-            QMessageBox.warning(self, "Warning", "Please select a collection first.")
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
         self.tab_widget.setCurrentIndex(2)  # Query tab
     
     def show_about(self):
         """Show about dialog."""
-        QMessageBox.about(
+        MessageBoxHelper.information(
             self,
             "About AtlasMogo",
             "AtlasMogo - MongoDB Management Tool\n\n"
@@ -1233,18 +1223,35 @@ class MainWindow(QMainWindow):
     
     def closeEvent(self, event):
         """Handle application close event."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("Close event triggered")
+        
         if self.mongo_service.is_connected():
-            reply = QMessageBox.question(
-                self,
-                "Confirm Exit",
-                "You are still connected to MongoDB. Do you want to disconnect and exit?",
-                QMessageBox.Yes | QMessageBox.No
-            )
+            logger.info("MongoDB is connected, showing confirmation dialog")
             
-        if reply == QMessageBox.Yes:
-                self.mongo_service.disconnect_from_mongodb()
+            try:
+                reply = MessageBoxHelper.question(
+                    self,
+                    "Confirm Exit",
+                    "You are still connected to MongoDB. Do you want to disconnect and exit?"
+                )
+                
+                logger.info(f"User response: {reply}")
+                
+                if reply:
+                    logger.info("User confirmed exit, disconnecting MongoDB")
+                    self.mongo_service.disconnect_from_mongodb()
+                    logger.info("Calling event.accept()")
+                    event.accept()
+                else:
+                    logger.info("User cancelled exit, calling event.ignore()")
+                    event.ignore()
+                    
+            except Exception as e:
+                logger.error(f"Error in closeEvent: {e}", exc_info=True)
                 event.accept()
-                else:
-                event.ignore()
-                else:
+        else:
+            logger.info("MongoDB not connected, accepting close event")
             event.accept()

@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont
 import qtawesome as fa
 
 from .styles import BUTTON_STYLES, DIALOG_STYLE, COLORS
+from .dialog_logger import bind_button, log_dialog_creation
 
 
 class DialogHelper:
@@ -37,7 +38,7 @@ class DialogHelper:
             show_secondary: Whether to show the secondary button
             
         Returns:
-            QHBoxLayout: Layout containing the buttons
+            tuple: (button_layout, button_dict) where button_dict contains named buttons
         """
         button_layout = QHBoxLayout()
         button_layout.setSpacing(12)
@@ -48,36 +49,49 @@ class DialogHelper:
         
         # Create buttons based on parameters
         buttons = []
+        button_dict = {}
         
         # Primary button (leftmost)
         if show_primary and primary_text:
-            primary_btn = QPushButton(f"{primary_icon} {primary_text}" if primary_icon else primary_text)
+            primary_btn = QPushButton(primary_text)
             primary_btn.setStyleSheet(BUTTON_STYLES['dialog_primary'])
+            if primary_icon:
+                primary_btn.setIcon(fa.icon(primary_icon))
             if primary_action:
                 primary_btn.clicked.connect(primary_action)
+            # Set as default button for Enter key support
+            primary_btn.setDefault(True)
+            primary_btn.setAutoDefault(True)
             buttons.append(primary_btn)
+            button_dict['primary'] = primary_btn
         
         # Destructive button (middle)
         if show_destructive and destructive_text:
-            destructive_btn = QPushButton(f"{destructive_icon} {destructive_text}" if destructive_icon else destructive_text)
+            destructive_btn = QPushButton(destructive_text)
             destructive_btn.setStyleSheet(BUTTON_STYLES['dialog_destructive'])
+            if destructive_icon:
+                destructive_btn.setIcon(fa.icon(destructive_icon))
             if destructive_action:
                 destructive_btn.clicked.connect(destructive_action)
             buttons.append(destructive_btn)
+            button_dict['destructive'] = destructive_btn
         
         # Secondary button (rightmost)
         if show_secondary and secondary_text:
-            secondary_btn = QPushButton(f"{secondary_icon} {secondary_text}" if secondary_icon else secondary_text)
+            secondary_btn = QPushButton(secondary_text)
             secondary_btn.setStyleSheet(BUTTON_STYLES['dialog_secondary'])
+            if secondary_icon:
+                secondary_btn.setIcon(fa.icon(secondary_icon))
             if secondary_action:
                 secondary_btn.clicked.connect(secondary_action)
             buttons.append(secondary_btn)
+            button_dict['secondary'] = secondary_btn
         
         # Add buttons to layout (in reverse order for proper positioning)
         for button in reversed(buttons):
             button_layout.addWidget(button)
         
-        return button_layout, buttons
+        return button_layout, button_dict
     
     @staticmethod
     def create_title_section(title, subtitle="", warning_text=""):
@@ -142,7 +156,7 @@ class DialogHelper:
             secondary_action: Action for secondary button
             
         Returns:
-            tuple: (button_layout, [primary_btn, secondary_btn])
+            tuple: (button_layout, button_dict)
         """
         if primary_action is None:
             primary_action = dialog.accept
@@ -172,7 +186,7 @@ class DialogHelper:
             cancel_action: Action for cancel button
             
         Returns:
-            tuple: (button_layout, [confirm_btn, cancel_btn])
+            tuple: (button_layout, button_dict)
         """
         if confirm_action is None:
             confirm_action = dialog.accept
@@ -202,7 +216,7 @@ class DialogHelper:
             cancel_action: Action for cancel button
             
         Returns:
-            tuple: (button_layout, [destructive_btn, cancel_btn])
+            tuple: (button_layout, button_dict)
         """
         if cancel_action is None:
             cancel_action = dialog.reject
@@ -217,6 +231,89 @@ class DialogHelper:
             show_primary=False,
             show_destructive=True
         )
+    
+    @staticmethod
+    def create_button_with_role(label, role, parent_dialog, icon=None):
+        """
+        Create a button with proper role-based action binding and logging.
+        
+        Args:
+            label: Button text
+            role: Button role ("ok", "cancel", "yes", "no", "destructive")
+            parent_dialog: The parent dialog widget
+            icon: Optional icon name
+            
+        Returns:
+            QPushButton: Configured button with proper action binding and logging
+        """
+        btn = QPushButton(label)
+        
+        # Apply role-based styling
+        if role == "ok" or role == "yes":
+            btn.setStyleSheet(BUTTON_STYLES['dialog_primary'])
+            btn.setDefault(True)
+            btn.setAutoDefault(True)
+        elif role == "cancel" or role == "no":
+            btn.setStyleSheet(BUTTON_STYLES['dialog_secondary'])
+            btn.setAutoDefault(False)
+        elif role == "destructive":
+            btn.setStyleSheet(BUTTON_STYLES['dialog_destructive'])
+            btn.setDefault(True)
+            btn.setAutoDefault(True)
+        
+        # Set icon if provided
+        if icon:
+            btn.setIcon(fa.icon(icon))
+        
+        # Bind button with logging
+        bind_button(btn, None, parent_dialog, role)
+        
+        return btn
+    
+    @staticmethod
+    def create_standard_button_layout(parent_dialog, primary_text="OK", primary_role="ok", primary_icon=None,
+                                    secondary_text="Cancel", secondary_role="cancel", secondary_icon="fa6s.times"):
+        """
+        Create a standard button layout with proper action binding.
+        
+        Args:
+            parent_dialog: The parent dialog widget
+            primary_text: Text for primary button
+            primary_role: Role for primary button ("ok", "yes", "destructive")
+            primary_icon: Icon for primary button
+            secondary_text: Text for secondary button
+            secondary_role: Role for secondary button ("cancel", "no")
+            secondary_icon: Icon for secondary button
+            
+        Returns:
+            tuple: (button_layout, button_dict)
+        """
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(12)
+        button_layout.setContentsMargins(0, 16, 0, 0)
+        
+        # Add stretch to push buttons to the right
+        button_layout.addStretch()
+        
+        # Create buttons with proper role binding
+        primary_btn = DialogHelper.create_button_with_role(
+            primary_text, primary_role, parent_dialog, primary_icon
+        )
+        
+        secondary_btn = DialogHelper.create_button_with_role(
+            secondary_text, secondary_role, parent_dialog, secondary_icon
+        )
+        
+        # Add buttons to layout (secondary first, then primary for proper positioning)
+        button_layout.addWidget(secondary_btn)
+        button_layout.addWidget(primary_btn)
+        
+        button_dict = {
+            'primary': primary_btn,
+            'secondary': secondary_btn
+        }
+        
+        return button_layout, button_dict
 
 
 

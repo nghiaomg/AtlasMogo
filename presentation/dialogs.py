@@ -14,6 +14,7 @@ import qtawesome as fa
 
 from .dialog_helper import DialogHelper
 from .styles import BUTTON_STYLES
+from .dialog_logger import log_dialog_creation, log_dialog_result
 
 
 class CreateDatabaseDialog(QDialog):
@@ -27,6 +28,9 @@ class CreateDatabaseDialog(QDialog):
         
         self.database_name = ""
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "CreateDatabaseDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -63,15 +67,16 @@ class CreateDatabaseDialog(QDialog):
         layout.addWidget(info_label)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Create Database",
+            primary_role="ok",
             primary_icon="fa6s.plus",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.create_btn = buttons[0]  # Primary button
+        self.create_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
         # Set focus to database name input
@@ -85,6 +90,12 @@ class CreateDatabaseDialog(QDialog):
     def get_database_name(self):
         """Get the entered database name."""
         return self.db_name_edit.text().strip()
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class CreateCollectionDialog(QDialog):
@@ -99,6 +110,9 @@ class CreateCollectionDialog(QDialog):
         self.database_name = database_name
         self.collection_name = ""
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "CreateCollectionDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -140,15 +154,16 @@ class CreateCollectionDialog(QDialog):
         layout.addLayout(form_layout)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Create Collection",
+            primary_role="ok",
             primary_icon="fa6s.folder-plus",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.create_btn = buttons[0]  # Primary button
+        self.create_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
         # Set focus to collection name input
@@ -168,6 +183,12 @@ class CreateCollectionDialog(QDialog):
     def get_collection_name(self):
         """Get the entered collection name."""
         return self.collection_name_edit.text().strip()
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class ConfirmationDialog(QDialog):
@@ -187,6 +208,9 @@ class ConfirmationDialog(QDialog):
         self.is_destructive = is_destructive
         
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "ConfirmationDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -208,23 +232,33 @@ class ConfirmationDialog(QDialog):
         
         # Buttons
         if self.is_destructive:
-            button_layout, buttons = DialogHelper.create_destructive_buttons(
+            button_layout, button_dict = DialogHelper.create_standard_button_layout(
                 self,
-                destructive_text=self.confirm_text,
-                destructive_action=self.accept,
-                cancel_text=self.cancel_text,
-                cancel_action=self.reject
+                primary_text=self.confirm_text,
+                primary_role="destructive",
+                primary_icon="fa6s.trash",
+                secondary_text=self.cancel_text,
+                secondary_role="cancel",
+                secondary_icon="fa6s.times"
             )
         else:
-            button_layout, buttons = DialogHelper.create_confirm_buttons(
+            button_layout, button_dict = DialogHelper.create_standard_button_layout(
                 self,
-                confirm_text=self.confirm_text,
-                confirm_action=self.accept,
-                cancel_text=self.cancel_text,
-                cancel_action=self.reject
+                primary_text=self.confirm_text,
+                primary_role="yes",
+                primary_icon="fa6s.check",
+                secondary_text=self.cancel_text,
+                secondary_role="no",
+                secondary_icon="fa6s.times"
             )
         
         layout.addLayout(button_layout)
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
         
     @staticmethod
     def confirm_delete(parent, item_name, item_type="item"):
@@ -237,7 +271,8 @@ class ConfirmationDialog(QDialog):
             cancel_text="Cancel",
             is_destructive=True
         )
-        return dialog.exec_() == QDialog.Accepted
+        result = dialog.exec_()
+        return result == QDialog.Accepted
     
     @staticmethod
     def confirm_drop(parent, item_name, item_type="item"):
@@ -250,7 +285,8 @@ class ConfirmationDialog(QDialog):
             cancel_text="Cancel",
             is_destructive=True
         )
-        return dialog.exec_() == QDialog.Accepted
+        result = dialog.exec_()
+        return result == QDialog.Accepted
 
 
 class RenameDialog(QDialog):
@@ -265,6 +301,9 @@ class RenameDialog(QDialog):
         self.current_name = current_name
         self.item_type = item_type
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "RenameDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -297,15 +336,16 @@ class RenameDialog(QDialog):
         layout.addLayout(form_layout)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Rename",
+            primary_role="ok",
             primary_icon="fa6s.pen",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.rename_btn = buttons[0]  # Primary button
+        self.rename_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
         # Set focus to name input
@@ -320,6 +360,12 @@ class RenameDialog(QDialog):
     def get_new_name(self):
         """Get the new name entered by the user."""
         return self.name_edit.text().strip()
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class InsertDocumentDialog(QDialog):
@@ -335,6 +381,9 @@ class InsertDocumentDialog(QDialog):
         self.collection_name = collection_name
         self.document_json = ""
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "InsertDocumentDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -387,15 +436,16 @@ class InsertDocumentDialog(QDialog):
         layout.addWidget(example_btn)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Insert Document",
+            primary_role="ok",
             primary_icon="fa6s.plus",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.insert_btn = buttons[0]  # Primary button
+        self.insert_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
     def validate_input(self):
@@ -425,6 +475,12 @@ class InsertDocumentDialog(QDialog):
     def get_document_json(self):
         """Get the document JSON string."""
         return self.document_edit.toPlainText().strip()
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class QueryBuilderDialog(QDialog):
@@ -441,6 +497,9 @@ class QueryBuilderDialog(QDialog):
         self.query_json = ""
         self.limit = 100
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "QueryBuilderDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -520,15 +579,16 @@ class QueryBuilderDialog(QDialog):
         layout.addLayout(example_layout)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Execute Query",
+            primary_role="ok",
             primary_icon="fa6s.magnifying-glass",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.execute_btn = buttons[0]  # Primary button
+        self.execute_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
     def validate_input(self):
@@ -556,6 +616,12 @@ class QueryBuilderDialog(QDialog):
     def get_limit(self):
         """Get the limit value."""
         return self.limit_spin.value()
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class SettingsDialog(QDialog):
@@ -568,6 +634,9 @@ class SettingsDialog(QDialog):
         self.setFixedSize(500, 400)
         
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "SettingsDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -620,13 +689,14 @@ class SettingsDialog(QDialog):
         layout.addWidget(ui_group)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Save Settings",
+            primary_role="ok",
             primary_icon="fa6s.save",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
         layout.addLayout(button_layout)
         
@@ -638,6 +708,12 @@ class SettingsDialog(QDialog):
             'auto_refresh': self.auto_refresh_check.isChecked(),
             'confirm_delete': self.confirm_delete_check.isChecked()
         }
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
 
 
 class ExportDataDialog(QDialog):
@@ -654,6 +730,9 @@ class ExportDataDialog(QDialog):
         self.export_format = "json"
         self.export_path = ""
         self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "ExportDataDialog")
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -700,15 +779,16 @@ class ExportDataDialog(QDialog):
         layout.addLayout(form_layout)
         
         # Buttons
-        button_layout, buttons = DialogHelper.create_button_layout(
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
             primary_text="Export Data",
+            primary_role="ok",
             primary_icon="fa6s.download",
-            primary_action=self.accept,
             secondary_text="Cancel",
-            secondary_icon="fa6s.times",
-            secondary_action=self.reject
+            secondary_role="cancel",
+            secondary_icon="fa6s.times"
         )
-        self.export_btn = buttons[0]  # Primary button
+        self.export_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
         
     def get_export_info(self):
@@ -717,3 +797,9 @@ class ExportDataDialog(QDialog):
             'format': self.export_format,
             'path': self.path_edit.text().strip()
         }
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result

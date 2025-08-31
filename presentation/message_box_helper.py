@@ -31,6 +31,7 @@ class CustomMessageBox(QDialog):
         self.icon = icon
         self.is_destructive = is_destructive
         self.result = None
+        self.default_result = None  # Store default result for when dialog is cancelled
         
         self.setup_ui()
         
@@ -95,7 +96,7 @@ class CustomMessageBox(QDialog):
                         btn.setIcon(fa.icon(self.icon))
                 else:  # secondary
                     btn.setStyleSheet(BUTTON_STYLES['dialog_secondary'])
-                    btn.setIcon(fa.icon('fa6s.times'))
+                    btn.setIcon(fa.icon('fa6s.xmark'))
                 
                 if action:
                     btn.clicked.connect(action)
@@ -111,6 +112,22 @@ class CustomMessageBox(QDialog):
         self.result = button.text()
         self.accept()
     
+    def rejectEvent(self, event):
+        """Handle dialog rejection (Escape key, X button)."""
+        # Set default result when dialog is cancelled
+        if self.result is None:
+            # For Yes/No dialogs, default to "No"
+            if any(btn.get('text') in ['Yes', 'No'] for btn in self.buttons):
+                self.result = 'No'
+            # For Delete/Cancel dialogs, default to "Cancel"
+            elif any(btn.get('text') in ['Delete', 'Cancel'] for btn in self.buttons):
+                self.result = 'Cancel'
+            # For other dialogs, use the last button (usually Cancel/No)
+            elif self.buttons:
+                self.result = self.buttons[-1]['text']
+        
+        super().rejectEvent(event)
+    
     def get_result(self):
         """Get the clicked button result."""
         return self.result
@@ -120,10 +137,10 @@ class MessageBoxHelper:
     """Helper class for creating consistent message boxes."""
     
     @staticmethod
-    def information(parent, title, message, icon="fa6s.info-circle"):
+    def information(parent, title, message, icon="fa6s.info"):
         """Show an information message box."""
         buttons = [
-            {'text': 'OK', 'role': 'primary', 'action': lambda: None}
+            {'text': 'OK', 'role': 'primary'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
@@ -131,10 +148,10 @@ class MessageBoxHelper:
         return dialog.get_result()
     
     @staticmethod
-    def warning(parent, title, message, icon="fa6s.exclamation-triangle"):
+    def warning(parent, title, message, icon="fa6s.exclamation"):
         """Show a warning message box."""
         buttons = [
-            {'text': 'OK', 'role': 'primary', 'action': lambda: None}
+            {'text': 'OK', 'role': 'primary'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
@@ -142,10 +159,10 @@ class MessageBoxHelper:
         return dialog.get_result()
     
     @staticmethod
-    def critical(parent, title, message, icon="fa6s.triangle-exclamation"):
+    def critical(parent, title, message, icon="fa6s.triangle"):
         """Show a critical error message box."""
         buttons = [
-            {'text': 'OK', 'role': 'destructive', 'action': lambda: None}
+            {'text': 'OK', 'role': 'destructive'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
@@ -153,29 +170,38 @@ class MessageBoxHelper:
         return dialog.get_result()
     
     @staticmethod
-    def question(parent, title, message, default_button="No", icon="fa6s.question-circle"):
+    def question(parent, title, message, default_button="No", icon="fa6s.question"):
         """Show a question message box with Yes/No buttons."""
         if default_button == "Yes":
             buttons = [
-                {'text': 'Yes', 'role': 'primary', 'action': lambda: None},
-                {'text': 'No', 'role': 'secondary', 'action': lambda: None}
+                {'text': 'Yes', 'role': 'primary'},
+                {'text': 'No', 'role': 'secondary'}
             ]
         else:
             buttons = [
-                {'text': 'No', 'role': 'secondary', 'action': lambda: None},
-                {'text': 'Yes', 'role': 'primary', 'action': lambda: None}
+                {'text': 'No', 'role': 'secondary'},
+                {'text': 'Yes', 'role': 'primary'}
             ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
-        dialog.exec_()
+        # Set default result based on default_button
+        dialog.default_result = default_button
+        dialog.result = default_button  # Initialize with default
+        
+        result = dialog.exec_()
+        
+        # If dialog was rejected (cancelled), return the opposite of default
+        if result == QDialog.Rejected:
+            return default_button == "Yes"
+        
         return dialog.get_result() == 'Yes'
     
     @staticmethod
     def confirm_delete(parent, title, message, icon="fa6s.trash"):
         """Show a confirmation dialog for deleting an item."""
         buttons = [
-            {'text': 'Delete', 'role': 'destructive', 'action': lambda: None},
-            {'text': 'Cancel', 'role': 'secondary', 'action': lambda: None}
+            {'text': 'Delete', 'role': 'destructive'},
+            {'text': 'Cancel', 'role': 'secondary'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
@@ -186,7 +212,7 @@ class MessageBoxHelper:
     def test_connection(parent, title, message, icon="fa6s.play"):
         """Show a test connection result message box."""
         buttons = [
-            {'text': 'OK', 'role': 'neutral', 'action': lambda: None}
+            {'text': 'OK', 'role': 'neutral'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)
@@ -194,10 +220,10 @@ class MessageBoxHelper:
         return dialog.get_result()
     
     @staticmethod
-    def success(parent, title, message, icon="fa6s.check-circle"):
+    def success(parent, title, message, icon="fa6s.check"):
         """Show a success message box."""
         buttons = [
-            {'text': 'OK', 'role': 'primary', 'action': lambda: None}
+            {'text': 'OK', 'role': 'primary'}
         ]
         
         dialog = CustomMessageBox(parent, title, message, buttons, icon)

@@ -390,15 +390,15 @@ BUTTON_STYLES = {
         }}
     """,
     
-    # Dialog button styles - Using exact colors specified
+    # Dialog button styles - Dual-style system for better UX
     'dialog_primary': f"""
         QPushButton {{
-            background-color: #007BFF;
+            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 6px;
             padding: 8px 16px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 500;
             min-height: 28px;
             min-width: 80px;
@@ -417,12 +417,12 @@ BUTTON_STYLES = {
     
     'dialog_destructive': f"""
         QPushButton {{
-            background-color: #DC3545;
+            background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 6px;
             padding: 8px 16px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 500;
             min-height: 28px;
             min-width: 80px;
@@ -439,33 +439,31 @@ BUTTON_STYLES = {
         }}
     """,
     
-         'dialog_secondary': f"""
-         QPushButton {{
-             background-color: #E0E0E0;
-             color: #333333;
-             border: 1px solid #D1D5DB;
-             border-radius: 6px;
-             padding: 8px 16px;
-             font-size: 12px;
-             font-weight: 500;
-             min-height: 28px;
-             min-width: 80px;
-         }}
-         QPushButton:hover {{
-             background-color: #CFCFCF;
-             color: #333333;
-             border-color: #9CA3AF;
-         }}
-         QPushButton:pressed {{
-             background-color: #CFCFCF;
-             color: #333333;
-         }}
-         QPushButton:disabled {{
-             background-color: #F3F4F6;
-             color: #9CA3AF;
-             border-color: #E5E7EB;
-         }}
-     """,
+    'dialog_secondary': f"""
+        QPushButton {{
+            background-color: transparent;
+            color: #333;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 28px;
+            min-width: 80px;
+        }}
+        QPushButton:hover {{
+            background-color: #f5f5f5;
+            border-color: #999;
+        }}
+        QPushButton:pressed {{
+            background-color: #e5e5e5;
+        }}
+        QPushButton:disabled {{
+            background-color: #f9f9f9;
+            color: #9CA3AF;
+            border-color: #e5e5e5;
+        }}
+    """,
      
      # Neutral/Info button style for test, info, and informational actions
      'dialog_neutral': f"""
