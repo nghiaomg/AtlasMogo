@@ -1,30 +1,38 @@
-# AtlasMogo
+# 🗺️ AtlasMogo
 
-A professional MongoDB management tool built with Python and PySide6, featuring a clean layered architecture for enterprise-grade database management.
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PySide6](https://img.shields.io/badge/PySide6-6.0+-orange.svg)](https://doc.qt.io/qtforpython/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4.0+-green.svg)](https://www.mongodb.com/)
 
-## 🚀 Features
+> A modern, professional MongoDB management tool built with Python and PySide6, featuring a clean layered architecture for enterprise-grade database operations.
 
-### Core Functionality
-- **Database Management**: Connect to local and remote MongoDB instances
-- **Collection Operations**: Browse, create, and manage collections
-- **CRUD Operations**: Full Create, Read, Update, Delete document support
-- **Query Execution**: Advanced query building and execution
-- **Real-time Monitoring**: Live connection status and database statistics
+## 📋 Table of Contents
 
-### User Experience
-- **Modern GUI**: Clean, intuitive interface built with PySide6
-- **Responsive Design**: Adaptive layout for different screen sizes
-- **Professional Styling**: Material Design-inspired color scheme
-- **Keyboard Shortcuts**: Efficient navigation and operation shortcuts
+- [About](#about)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Development](#-development)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Author](#-author)
 
-### Technical Features
-- **Layered Architecture**: Clean separation of concerns
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Logging**: Detailed logging for debugging and monitoring
-- **Threading**: Non-blocking UI with background operations
-- **Extensible Design**: Ready for future feature additions
+## About
 
-## 🏗️ Architecture
+**AtlasMogo** is a desktop application that provides a modern, intuitive interface for managing MongoDB databases. Built with Python and PySide6, it offers enterprise-grade functionality with a clean, professional design.
+
+### Why AtlasMogo?
+
+- **Modern UI**: Clean, responsive interface built with PySide6
+- **Layered Architecture**: Clean separation of concerns for maintainability
+- **Professional Features**: Comprehensive CRUD operations, logging, and error handling
+- **Cross-Platform**: Works on Windows, Linux, and macOS
+- **Developer-Friendly**: Extensive logging and debugging capabilities
+
+### Architecture
 
 AtlasMogo follows a **Layered Architecture** pattern:
 
@@ -41,30 +49,82 @@ AtlasMogo follows a **Layered Architecture** pattern:
 └─────────────────────────────────────┘
 ```
 
-### Layer Responsibilities
+## ✨ Features
 
-- **Presentation Layer**: User interface components and event handling
-- **Business Logic Layer**: Application logic, data orchestration, and validation
-- **Data Access Layer**: MongoDB connection management and CRUD operations
+### 🔧 Core Functionality
+- **MongoDB CRUD Operations**: Full Create, Read, Update, Delete support
+- **Database Navigation**: Browse databases and collections with sidebar
+- **Document Management**: View, edit, and manage documents in tabular format
+- **Query Execution**: Execute custom MongoDB queries
+- **Connection Management**: Support for local and remote MongoDB instances
 
-## 🛠️ Technology Stack
+### 🎨 User Experience
+- **Modern GUI**: Clean, intuitive interface with professional styling
+- **Context Menus**: Right-click context menus for quick operations
+- **Responsive Design**: Adaptive layout for different screen sizes
+- **Professional Dialogs**: Confirmation dialogs with proper user flows
+- **Real-time Feedback**: Live connection status and operation feedback
 
-- **Python 3.10+**: Core application language
-- **PySide6**: Modern Qt-based GUI framework
-- **pymongo**: Official MongoDB Python driver
-- **dnspython**: DNS toolkit for MongoDB connection strings
-- **python-dotenv**: Environment variable management
+### 🛠️ Technical Features
+- **Layered Architecture**: Clean separation of concerns
+- **Comprehensive Logging**: Detailed logging system for debugging
+- **Error Handling**: Robust error handling with user-friendly messages
+- **Threading**: Non-blocking UI with background operations
+- **Configuration Management**: Centralized settings and configuration
+- **Icon Support**: Custom application icon for professional appearance
 
-## 📦 Installation
+### 🌐 Cross-Platform Support
+- **Windows**: Full support with native executable
+- **Linux**: Compatible with major distributions
+- **macOS**: Native macOS application support
+
+## 📁 Project Structure
+
+```
+AtlasMogo/
+├── presentation/              # GUI components (PySide6)
+│   ├── windows/              # Main application windows
+│   │   └── main_window.py    # Main application window
+│   ├── panels/               # UI panels and components
+│   │   ├── sidebar.py        # Database navigation sidebar
+│   │   ├── data_table.py     # Document display table
+│   │   ├── toolbar.py        # Application toolbar
+│   │   └── connection_panel.py # Connection configuration
+│   ├── dialogs/              # Dialog components
+│   │   ├── message_box_helper.py # Message box utilities
+│   │   └── dialog_helper.py  # Dialog utilities
+│   └── styles/               # UI styling and themes
+│       └── styles.py         # Application stylesheets
+├── business/                 # Business logic layer
+│   └── mongo_service.py      # MongoDB service orchestration
+├── data/                     # Data access layer
+│   ├── mongo_connection.py   # Connection management
+│   └── mongo_repository.py   # CRUD operations
+├── config/                   # Configuration and settings
+│   ├── settings.py           # Application settings
+│   └── logging_config.py     # Logging configuration
+├── resources/                # Application resources
+│   └── icons/                # Application icons
+│       └── icon.ico          # Main application icon
+├── logs/                     # Application logs
+├── tests/                    # Test suite
+├── main.py                   # Application entry point
+├── build.py                  # PyInstaller build script
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
+```
+
+## 🚀 Installation
 
 ### Prerequisites
-- Python 3.10 or higher
-- MongoDB instance (local or remote)
+- **Python 3.10** or higher
+- **MongoDB** instance (local or remote)
 
-### Setup
+### Quick Setup
+
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/AtlasMogo.git
+   git clone https://github.com/nghiaomg/AtlasMogo.git
    cd AtlasMogo
    ```
 
@@ -78,179 +138,232 @@ AtlasMogo follows a **Layered Architecture** pattern:
    python main.py
    ```
 
-## 🚀 Quick Start
+### Dependencies
+
+The application requires the following Python packages:
+- `PySide6` - Modern Qt-based GUI framework
+- `pymongo` - Official MongoDB Python driver
+- `qtawesome` - Icon library for PySide6
+- `python-dotenv` - Environment variable management
+
+## 📖 Usage
+
+### Getting Started
 
 1. **Launch AtlasMogo**
-2. **Connect to MongoDB**:
-   - Enter connection string (default: `mongodb://localhost:27017`)
-   - Click "Connect"
-3. **Browse Databases**: Select databases and collections from the left panel
-4. **View Documents**: Click on collections to view documents in tabular format
-5. **Perform Operations**: Use the Operations tab for CRUD operations
-6. **Execute Queries**: Use the Query tab for custom MongoDB queries
-
-## 📁 Project Structure
-
-```
-AtlasMogo/
-├── presentation/          # GUI components (PySide6)
-│   ├── __init__.py
-│   └── main_window.py    # Main application window
-├── business/              # Business logic layer
-│   ├── __init__.py
-│   └── mongo_service.py  # MongoDB service orchestration
-├── data/                  # Data access layer
-│   ├── __init__.py
-│   ├── mongo_connection.py # Connection management
-│   └── mongo_repository.py # CRUD operations
-├── config/                # Configuration and settings
-│   ├── __init__.py
-│   ├── settings.py        # Application settings
-│   └── logging_config.py  # Logging configuration
-├── logs/                  # Application logs
-├── tests/                 # Test suite
-│   ├── __init__.py
-│   └── README.md          # Testing documentation
-├── main.py                # Application entry point
-├── requirements.txt       # Python dependencies
-├── .gitignore            # Git ignore rules
-└── README.md             # This file
-```
-
-## 🔧 Configuration
-
-### Connection Strings
-
-- **Local MongoDB**: `mongodb://localhost:27017`
-- **With Authentication**: `mongodb://username:password@localhost:27017`
-- **MongoDB Atlas**: `mongodb+srv://username:password@cluster.mongodb.net/`
-- **Custom**: Any valid MongoDB connection string
-
-### Environment Variables
-
-Set environment variables for custom configurations:
-```bash
-# MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_TIMEOUT=5000
-MONGODB_SERVER_SELECTION_TIMEOUT=3000
-
-# Application Settings
-WINDOW_WIDTH=1200
-WINDOW_HEIGHT=800
-LOG_LEVEL=INFO
-```
-
-### Configuration Files
-
-Configuration is centralized in the `config/` directory:
-- **`settings.py`**: Application settings, window dimensions, MongoDB defaults
-- **`logging_config.py`**: Logging setup and configuration
-
-## 📊 Usage Examples
-
-### Basic CRUD Operations
-
-1. **Insert Document**:
-   ```json
-   {
-     "name": "John Doe",
-     "email": "john@example.com",
-     "age": 30
-   }
+   ```bash
+   python main.py
    ```
 
-2. **Update Document**:
-   - Filter: `{"email": "john@example.com"}`
-   - Update: `{"age": 31}`
+2. **Connect to MongoDB**
+   - Enter your MongoDB connection string
+   - Default: `mongodb://localhost:27017`
+   - Click "Connect" button
 
-3. **Delete Document**:
-   - Filter: `{"email": "john@example.com"}`
+3. **Browse Databases**
+   - Select databases from the left sidebar
+   - Expand collections within each database
+   - Click on collections to view documents
 
-4. **Query Documents**:
-   - Filter: `{"age": {"$gte": 25}}`
-   - Limit: 100
+4. **Perform Operations**
+   - **View Documents**: Documents display in tabular format
+   - **Insert Documents**: Use the insert dialog
+   - **Update Documents**: Right-click and select "Edit"
+   - **Delete Documents**: Right-click and select "Delete"
+   - **Execute Queries**: Use the query panel for custom operations
 
-## 🎨 Customization
+### Connection Examples
 
-### Themes
-AtlasMogo supports multiple themes:
-- **Default**: Light theme with blue accents
-- **Dark**: Dark theme for reduced eye strain
+```bash
+# Local MongoDB
+mongodb://localhost:27017
 
-### Styling
-Customize the application appearance by modifying the CSS-like styles in `main_window.py`.
+# With Authentication
+mongodb://username:password@localhost:27017
 
-## 🧪 Testing
+# MongoDB Atlas
+mongodb+srv://username:password@cluster.mongodb.net/
 
-Run the application and test with your MongoDB instance:
+# Custom Configuration
+mongodb://host:port/database?options
+```
 
-1. **Local Testing**: Use MongoDB Community Edition
-2. **Remote Testing**: Connect to MongoDB Atlas or other cloud providers
-3. **Performance Testing**: Test with large datasets and complex queries
+### CRUD Operations
 
-## 🚧 Development
+#### Insert Document
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "age": 30,
+  "created_at": "2024-01-01T00:00:00Z"
+}
+```
 
-### Adding New Features
+#### Update Document
+- **Filter**: `{"email": "john@example.com"}`
+- **Update**: `{"age": 31, "updated_at": "2024-01-02T00:00:00Z"}`
 
-1. **Data Layer**: Extend `MongoRepository` for new operations
-2. **Business Layer**: Add services in `MongoService`
-3. **Presentation Layer**: Create new UI components in `presentation/`
+#### Delete Document
+- **Filter**: `{"email": "john@example.com"}`
 
-### Code Style
-- Follow PEP 8 guidelines
-- Add comprehensive docstrings
-- Implement proper error handling
-- Write unit tests for new features
+#### Query Documents
+- **Filter**: `{"age": {"$gte": 25}}`
+- **Limit**: 100
+- **Sort**: `{"created_at": -1}`
 
-## 📈 Future Enhancements
+## 🛠️ Development
 
-### Planned Features
-- **Backup & Restore**: Database backup and restoration tools
-- **Data Visualization**: Charts and graphs for data analysis
-- **User Management**: Multi-user support with role-based access
-- **Performance Monitoring**: Real-time performance metrics
-- **Export/Import**: Data export in multiple formats
-- **Plugin System**: Extensible architecture for custom functionality
+### Building the Executable
 
-### Roadmap
-- **v1.1**: Advanced query builder and aggregation pipeline support
-- **v1.2**: Backup/restore functionality and data migration tools
-- **v1.3**: Performance monitoring and optimization suggestions
-- **v2.0**: Multi-database support and advanced analytics
+AtlasMogo includes a build script for creating standalone executables:
+
+```bash
+# Build executable
+python build.py
+
+# Clean build artifacts
+python build.py clean
+```
+
+The build process:
+- Uses PyInstaller for packaging
+- Includes custom application icon (`resources/icons/icon.ico`)
+- Bundles all resources and dependencies
+- Creates a single executable file
+
+### Development Setup
+
+1. **Clone and setup**:
+   ```bash
+   git clone https://github.com/nghiaomg/AtlasMogo.git
+   cd AtlasMogo
+   pip install -r requirements.txt
+   ```
+
+2. **Run in development mode**:
+   ```bash
+   python main.py
+   ```
+
+3. **Check logs**:
+   - Application logs are stored in `logs/atlasmogo.log`
+   - Detailed logging for debugging and monitoring
+
+### Code Structure
+
+- **Presentation Layer**: UI components in `presentation/`
+- **Business Layer**: Application logic in `business/`
+- **Data Layer**: Database operations in `data/`
+- **Configuration**: Settings and logging in `config/`
+
+## 🗺️ Roadmap
+
+### Version 1.1 (Planned)
+- [ ] **Advanced Query Builder**: Visual query construction interface
+- [ ] **Aggregation Pipeline Support**: MongoDB aggregation operations
+- [ ] **Data Export/Import**: Support for JSON, CSV, and other formats
+- [ ] **Theme Support**: Light/dark theme switching
+
+### Version 1.2 (Planned)
+- [ ] **Backup & Restore**: Database backup and restoration tools
+- [ ] **Data Migration**: Tools for database migration
+- [ ] **Performance Monitoring**: Real-time performance metrics
+- [ ] **User Management**: Multi-user support with roles
+
+### Version 2.0 (Future)
+- [ ] **Cloud Integration**: Direct MongoDB Atlas integration
+- [ ] **Data Visualization**: Charts and graphs for data analysis
+- [ ] **Plugin System**: Extensible architecture for custom functionality
+- [ ] **Advanced Analytics**: Built-in analytics and reporting
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines:
+We welcome contributions from the community! Here's how you can help:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests and documentation
-5. Submit a pull request
+### Getting Started
+
+1. **Fork the repository**
+2. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes** and add tests
+4. **Commit your changes**:
+   ```bash
+   git commit -m 'Add amazing feature'
+   ```
+5. **Push to the branch**:
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+6. **Open a Pull Request**
+
+### Development Guidelines
+
+- Follow **PEP 8** style guidelines
+- Add comprehensive **docstrings** to functions and classes
+- Write **unit tests** for new features
+- Update **documentation** for any changes
+- Ensure **error handling** is robust
+
+### Reporting Issues
+
+- Use the GitHub issue tracker
+- Provide detailed reproduction steps
+- Include system information and error logs
+- Check existing issues before creating new ones
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+```
+MIT License
 
-### Getting Help
-- **Documentation**: Check this README and inline code comments
-- **Issues**: Report bugs and feature requests on GitHub
-- **Discussions**: Join community discussions for help and ideas
+Copyright (c) 2024 nghiaomg
 
-### Common Issues
-- **Connection Failed**: Verify MongoDB is running and accessible
-- **Authentication Error**: Check username/password in connection string
-- **Permission Denied**: Ensure user has appropriate database permissions
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## 🙏 Acknowledgments
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-- **MongoDB Team**: For the excellent database platform
-- **Qt/PySide6 Community**: For the powerful GUI framework
-- **Python Community**: For the amazing ecosystem and tools
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## 👨‍💻 Author
+
+**AtlasMogo** is created and maintained by **nghiaomg**.
+
+- **GitHub**: [github.com/nghiaomg](https://github.com/nghiaomg)
+- **Project**: [AtlasMogo Repository](https://github.com/nghiaomg/AtlasMogo)
+
+### Acknowledgments
+
+- **MongoDB Team** - For the excellent database platform
+- **Qt/PySide6 Community** - For the powerful GUI framework
+- **Python Community** - For the amazing ecosystem and tools
 
 ---
 
+<div align="center">
+
 **AtlasMogo** - Empowering MongoDB management with Python excellence! 🐍✨
+
+[![GitHub stars](https://img.shields.io/github/stars/nghiaomg/AtlasMogo?style=social)](https://github.com/nghiaomg/AtlasMogo/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/nghiaomg/AtlasMogo?style=social)](https://github.com/nghiaomg/AtlasMogo/network/members)
+
+*Made with ❤️ by the AtlasMogo community*
+
+</div>

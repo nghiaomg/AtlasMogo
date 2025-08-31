@@ -19,7 +19,7 @@ from ..panels.menu_bar import MenuBar
 from ..panels.toolbar import ToolBar
 from ..panels.connection_panel import ConnectionPanel
 from ..panels.sidebar import Sidebar
-from ..panels.data_table import DataTable
+from ..panels.document_view_manager import DocumentViewManager
 from ..panels.operations_panel import OperationsPanel
 from ..panels.query_panel import QueryPanel
 from ..panels.status_bar import StatusBar
@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.toolbar_component = None
         self.connection_panel = None
         self.sidebar = None
-        self.data_table = None
+        self.document_view_manager = None
         self.operations_panel = None
         self.query_panel = None
         self.status_bar_component = None
@@ -194,8 +194,8 @@ class MainWindow(QMainWindow):
         self.tab_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # Documents tab
-        self.data_table = DataTable(self)
-        self.tab_widget.addTab(self.data_table.get_widget(), "Documents")
+        self.document_view_manager = DocumentViewManager(self)
+        self.tab_widget.addTab(self.document_view_manager.get_widget(), "Documents")
         
         # Operations tab
         self.operations_panel = OperationsPanel(self)
@@ -228,11 +228,11 @@ class MainWindow(QMainWindow):
         self.sidebar.delete_collection_requested.connect(self.on_delete_collection)
         self.sidebar.insert_document_requested.connect(self.on_insert_document_from_context)
         
-        # Data table signals
-        self.data_table.refresh_requested.connect(self.refresh_documents)
-        self.data_table.view_document_requested.connect(self.on_view_document)
-        self.data_table.edit_document_requested.connect(self.on_edit_document)
-        self.data_table.delete_document_requested.connect(self.on_delete_document_from_context)
+        # Document view manager signals
+        self.document_view_manager.refresh_requested.connect(self.refresh_documents)
+        self.document_view_manager.view_document_requested.connect(self.on_view_document)
+        self.document_view_manager.edit_document_requested.connect(self.on_edit_document)
+        self.document_view_manager.delete_document_requested.connect(self.on_delete_document_from_context)
         
         # Operations panel signals
         self.operations_panel.insert_requested.connect(self.insert_document)
@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
             # Reset labels
             self.sidebar.update_selected_database("No database selected")
             self.sidebar.update_collection_count(0)
-            self.data_table.clear_table()
+            self.document_view_manager.clear_views()
             
             # Update status bar
             self.status_bar_component.show_message("Disconnected from MongoDB", 3000)
@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Database selected: {database_name}")
         
         # Update labels
-        self.data_table.set_collection_info("None selected", 0)
+        self.document_view_manager.set_collection_info("None selected", 0)
         self.sidebar.update_selected_database(database_name)
         
         # Get collection count for this database
@@ -493,7 +493,7 @@ class MainWindow(QMainWindow):
             self.sidebar.update_collection_count(collection_count)
             
             # Clear documents table
-            self.data_table.clear_table()
+            self.document_view_manager.clear_views()
             
         except Exception as e:
             logger.error(f"Failed to get collections for database {database_name}: {e}")
@@ -513,21 +513,21 @@ class MainWindow(QMainWindow):
         logger.info(f"Collection selected: {database_name}/{collection_name}")
         
         # Update labels
-        self.data_table.set_collection_info(collection_name, 0)
+        self.document_view_manager.set_collection_info(collection_name, 0)
         self.sidebar.update_selected_database(f"{database_name} > {collection_name}")
         
         # Get document count and load documents
         try:
             count = self.mongo_service.count_documents(database_name, collection_name)
             logger.debug(f"Collection {collection_name} has {count} documents")
-            self.data_table.set_collection_info(collection_name, count)
+            self.document_view_manager.set_collection_info(collection_name, count)
             
             # Load documents
             self.refresh_documents()
             
         except Exception as e:
             logger.error(f"Failed to load documents for {database_name}/{collection_name}: {e}")
-            self.data_table.set_collection_info(collection_name, 0)
+            self.document_view_manager.set_collection_info(collection_name, 0)
             MessageBoxHelper.warning(self, "Error", f"Failed to load documents: {str(e)}")
         
         # Update status bar
@@ -544,7 +544,7 @@ class MainWindow(QMainWindow):
         
         logger.info(f"Refreshing documents for {self.current_database}/{self.current_collection}")
         
-        self.data_table.set_loading_state(True)
+        self.document_view_manager.set_loading_state(True)
         
         try:
             documents = self.mongo_service.find_documents(
@@ -554,7 +554,7 @@ class MainWindow(QMainWindow):
             )
             
             logger.debug(f"Retrieved {len(documents) if documents else 0} documents")
-            self.data_table.populate_documents(documents)
+            self.document_view_manager.populate_documents(documents)
             
             # Update status bar
             doc_count = len(documents) if documents else 0
@@ -562,11 +562,11 @@ class MainWindow(QMainWindow):
             
         except Exception as e:
             logger.error(f"Failed to load documents: {e}")
-            self.data_table.set_error_state(str(e))
+            self.document_view_manager.set_error_state(str(e))
             MessageBoxHelper.warning(self, "Error", f"Failed to load documents: {str(e)}")
         
         finally:
-            self.data_table.set_loading_state(False)
+            self.document_view_manager.set_loading_state(False)
     
     def insert_document(self, document_text: str):
         """Insert a new document."""
@@ -1391,7 +1391,7 @@ class MainWindow(QMainWindow):
             return
         
         # Get the document data for the selected row
-        document = self.data_table.get_document_by_row(row)
+        document = self.document_view_manager.get_document_by_row(row)
         if not document:
             logger.error(f"No document found at row {row}")
             MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
@@ -1417,7 +1417,7 @@ class MainWindow(QMainWindow):
             return
         
         # Get the document data for the selected row
-        document = self.data_table.get_document_by_row(row)
+        document = self.document_view_manager.get_document_by_row(row)
         if not document:
             logger.error(f"No document found at row {row}")
             MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
@@ -1478,7 +1478,7 @@ class MainWindow(QMainWindow):
             return
         
         # Get the document data for the selected row
-        document = self.data_table.get_document_by_row(row)
+        document = self.document_view_manager.get_document_by_row(row)
         if not document:
             logger.error(f"No document found at row {row}")
             MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
