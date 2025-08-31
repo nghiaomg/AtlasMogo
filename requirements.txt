@@ -1,0 +1,5 @@
+PySide6>=6.5.0
+pymongo>=3.12.0,<4.0.0
+dnspython>=2.4.0
+python-dotenv>=1.0.0
+QtAwesome>=1.2.0
