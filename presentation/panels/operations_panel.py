@@ -3,13 +3,15 @@ Operations Panel Component
 Handles CRUD operations (Create, Read, Update, Delete) for MongoDB documents.
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
-    QTextEdit, QLineEdit, QPushButton, QScrollArea, QSizePolicy
-)
+from __future__ import annotations
+
+import qtawesome as fa
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import Qt
-import qtawesome as fa
+from PySide6.QtWidgets import (
+    QFormLayout, QGroupBox, QHBoxLayout, QLineEdit, QPushButton, QScrollArea,
+    QSizePolicy, QTextEdit, QVBoxLayout, QWidget
+)
 
 
 class OperationsPanel(QObject):
@@ -20,17 +22,17 @@ class OperationsPanel(QObject):
     update_requested = Signal(str, str)  # Emits filter, update data
     delete_requested = Signal(str)  # Emits filter
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.widget = None
-        self.insert_text = None
-        self.update_filter = None
-        self.update_data = None
-        self.delete_filter = None
+        self.widget: QWidget | None = None
+        self.insert_text: QTextEdit | None = None
+        self.update_filter: QLineEdit | None = None
+        self.update_data: QTextEdit | None = None
+        self.delete_filter: QLineEdit | None = None
         self._create_operations_panel()
     
-    def _create_operations_panel(self):
+    def _create_operations_panel(self) -> None:
         """Create the operations panel widget."""
         self.widget = QWidget()
         layout = QVBoxLayout(self.widget)
@@ -49,13 +51,8 @@ class OperationsPanel(QObject):
         content_layout.setSpacing(12)
         content_layout.setContentsMargins(8, 8, 8, 8)
         
-        # Insert document section
         self._create_insert_section(content_layout)
-        
-        # Update document section
         self._create_update_section(content_layout)
-        
-        # Delete document section
         self._create_delete_section(content_layout)
         
         # Set content widget for scroll area
@@ -68,7 +65,7 @@ class OperationsPanel(QObject):
         self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     
-    def _create_insert_section(self, parent_layout):
+    def _create_insert_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the insert document section."""
         insert_group = QGroupBox("Insert Document")
         insert_layout = QVBoxLayout(insert_group)
@@ -90,7 +87,7 @@ class OperationsPanel(QObject):
         
         parent_layout.addWidget(insert_group)
     
-    def _create_update_section(self, parent_layout):
+    def _create_update_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the update document section."""
         update_group = QGroupBox("Update Document")
         update_layout = QFormLayout(update_group)
@@ -118,7 +115,7 @@ class OperationsPanel(QObject):
         
         parent_layout.addWidget(update_group)
     
-    def _create_delete_section(self, parent_layout):
+    def _create_delete_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the delete document section."""
         delete_group = QGroupBox("Delete Document")
         delete_layout = QFormLayout(delete_group)
@@ -139,13 +136,13 @@ class OperationsPanel(QObject):
         
         parent_layout.addWidget(delete_group)
     
-    def _on_insert_clicked(self):
+    def _on_insert_clicked(self) -> None:
         """Handle insert button click."""
         document_text = self.insert_text.toPlainText().strip()
         if document_text:
             self.insert_requested.emit(document_text)
     
-    def _on_update_clicked(self):
+    def _on_update_clicked(self) -> None:
         """Handle update button click."""
         filter_text = self.update_filter.text().strip()
         update_text = self.update_data.toPlainText().strip()
@@ -153,60 +150,60 @@ class OperationsPanel(QObject):
         if filter_text and update_text:
             self.update_requested.emit(filter_text, update_text)
     
-    def _on_delete_clicked(self):
+    def _on_delete_clicked(self) -> None:
         """Handle delete button click."""
         filter_text = self.delete_filter.text().strip()
         if filter_text:
             self.delete_requested.emit(filter_text)
     
-    def get_widget(self):
+    def get_widget(self) -> QWidget | None:
         """Get the operations panel widget."""
         return self.widget
     
-    def clear_insert_form(self):
+    def clear_insert_form(self) -> None:
         """Clear the insert document form."""
         if self.insert_text:
             self.insert_text.clear()
     
-    def clear_update_form(self):
+    def clear_update_form(self) -> None:
         """Clear the update document form."""
         if self.update_filter:
             self.update_filter.clear()
         if self.update_data:
             self.update_data.clear()
     
-    def clear_delete_form(self):
+    def clear_delete_form(self) -> None:
         """Clear the delete document form."""
         if self.delete_filter:
             self.delete_filter.clear()
     
-    def clear_all_forms(self):
+    def clear_all_forms(self) -> None:
         """Clear all operation forms."""
         self.clear_insert_form()
         self.clear_update_form()
         self.clear_delete_form()
     
-    def set_insert_placeholder(self, text: str):
+    def set_insert_placeholder(self, text: str) -> None:
         """Set the placeholder text for insert form."""
         if self.insert_text:
             self.insert_text.setPlaceholderText(text)
     
-    def set_update_filter_placeholder(self, text: str):
+    def set_update_filter_placeholder(self, text: str) -> None:
         """Set the placeholder text for update filter."""
         if self.update_filter:
             self.update_filter.setPlaceholderText(text)
     
-    def set_update_data_placeholder(self, text: str):
+    def set_update_data_placeholder(self, text: str) -> None:
         """Set the placeholder text for update data."""
         if self.update_data:
             self.update_data.setPlaceholderText(text)
     
-    def set_delete_filter_placeholder(self, text: str):
+    def set_delete_filter_placeholder(self, text: str) -> None:
         """Set the placeholder text for delete filter."""
         if self.delete_filter:
             self.delete_filter.setPlaceholderText(text)
     
-    def enable_operations(self, enabled: bool = True):
+    def enable_operations(self, enabled: bool = True) -> None:
         """Enable or disable all operation forms."""
         if self.insert_text:
             self.insert_text.setEnabled(enabled)

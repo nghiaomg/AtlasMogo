@@ -3,41 +3,38 @@ Toolbar Component
 Handles the main toolbar with text-only buttons for common operations.
 """
 
-from PySide6.QtWidgets import QToolBar, QWidget, QHBoxLayout
-from PySide6.QtGui import QAction
-from PySide6.QtCore import QObject
+from __future__ import annotations
+
+from typing import Any, Callable
+
 import qtawesome as fa
+from PySide6.QtCore import QObject
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QToolBar
 
 
 class ToolBar(QObject):
     """Main toolbar for AtlasMogo application."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.toolbar = None
-        self.actions = {}
+        self.toolbar: QToolBar | None = None
+        self.actions: dict[str, QAction] = {}
         self._create_toolbar()
     
-    def _create_toolbar(self):
+    def _create_toolbar(self) -> None:
         """Create the main toolbar with common actions."""
         self.toolbar = QToolBar("Main Toolbar")
         self.toolbar.setMovable(True)
         self.toolbar.setFloatable(False)
         
-        # Connection actions
         self._add_connection_actions()
-        
-        # Database actions
         self._add_database_actions()
-        
-        # Document actions
         self._add_document_actions()
-        
-        # Query actions
         self._add_query_actions()
     
-    def _add_connection_actions(self):
+    def _add_connection_actions(self) -> None:
         """Add connection-related actions to toolbar."""
         self.toolbar.addSeparator()
         
@@ -55,7 +52,7 @@ class ToolBar(QObject):
         
         self.toolbar.addSeparator()
     
-    def _add_database_actions(self):
+    def _add_database_actions(self) -> None:
         """Add database-related actions to toolbar."""
         # Create Database action
         create_db_action = QAction(fa.icon('fa6s.plus'), "Create Database", self.parent)
@@ -71,7 +68,7 @@ class ToolBar(QObject):
         
         self.toolbar.addSeparator()
     
-    def _add_document_actions(self):
+    def _add_document_actions(self) -> None:
         """Add document-related actions to toolbar."""
         # Insert action
         insert_action = QAction(fa.icon('fa6s.plus'), "Insert", self.parent)
@@ -87,7 +84,7 @@ class ToolBar(QObject):
         
         self.toolbar.addSeparator()
     
-    def _add_query_actions(self):
+    def _add_query_actions(self) -> None:
         """Add query-related actions to toolbar."""
         # Query action
         query_action = QAction(fa.icon('fa6s.magnifying-glass'), "Query", self.parent)
@@ -101,33 +98,33 @@ class ToolBar(QObject):
         self.actions['refresh'] = refresh_action
         self.toolbar.addAction(refresh_action)
     
-    def get_toolbar(self):
+    def get_toolbar(self) -> QToolBar | None:
         """Get the created toolbar."""
         return self.toolbar
     
-    def get_action(self, action_name: str):
+    def get_action(self, action_name: str) -> QAction | None:
         """Get a specific action by name."""
         return self.actions.get(action_name)
     
-    def connect_action(self, action_name: str, slot):
+    def connect_action(self, action_name: str, slot: Callable[[], Any]) -> None:
         """Connect an action to a slot function."""
         action = self.actions.get(action_name)
         if action:
             action.triggered.connect(slot)
     
-    def enable_action(self, action_name: str, enabled: bool = True):
+    def enable_action(self, action_name: str, enabled: bool = True) -> None:
         """Enable or disable a specific action."""
         action = self.actions.get(action_name)
         if action:
             action.setEnabled(enabled)
     
-    def set_action_text(self, action_name: str, text: str):
+    def set_action_text(self, action_name: str, text: str) -> None:
         """Set the text for a specific action."""
         action = self.actions.get(action_name)
         if action:
             action.setText(text)
     
-    def update_toolbar_state(self, connected: bool):
+    def update_toolbar_state(self, connected: bool) -> None:
         """Update toolbar button states based on connection status."""
         if connected:
             self.enable_action('connect', False)

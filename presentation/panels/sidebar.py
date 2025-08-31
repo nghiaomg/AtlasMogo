@@ -3,13 +3,17 @@ Sidebar Component
 Handles the left panel with databases and collections tree view.
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QLabel, QPushButton, QSizePolicy, QMenu
-)
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QFont, QAction
+from __future__ import annotations
+
+from typing import Any
+
 import qtawesome as fa
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QAction, QFont
+from PySide6.QtWidgets import (
+    QHBoxLayout, QLabel, QMenu, QPushButton, QSizePolicy, QTreeWidget,
+    QTreeWidgetItem, QVBoxLayout, QWidget
+)
 
 # Import styles at module level
 from ..styles.styles import BUTTON_STYLES, LABEL_STYLES, SIDEBAR_TREE_STYLE, CONTEXT_MENU_STYLE
@@ -32,36 +36,29 @@ class Sidebar(QObject):
     delete_collection_requested = Signal(str, str)  # Emits database name, collection name
     insert_document_requested = Signal(str, str)  # Emits database name, collection name
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.widget = None
-        self.db_tree = None
-        self.db_count_label = None
-        self.selected_db_label = None
-        self.collection_count_label = None
+        self.widget: QWidget | None = None
+        self.db_tree: QTreeWidget | None = None
+        self.db_count_label: QLabel | None = None
+        self.selected_db_label: QLabel | None = None
+        self.collection_count_label: QLabel | None = None
         self._create_sidebar()
     
-    def _create_sidebar(self):
+    def _create_sidebar(self) -> None:
         """Create the sidebar widget with database tree and controls."""
         self.widget = QWidget()
         layout = QVBoxLayout(self.widget)
         layout.setSpacing(8)
         layout.setContentsMargins(6, 6, 6, 6)
         
-        # Header with title and actions
         self._create_header(layout)
-        
-        # Action buttons row
         self._create_action_buttons(layout)
-        
-        # Tree widget for databases and collections
         self._create_database_tree(layout)
-        
-        # Status bar for database operations
         self._create_status_section(layout)
     
-    def _create_header(self, parent_layout):
+    def _create_header(self, parent_layout: QVBoxLayout) -> None:
         """Create the header section with title and database count."""
         header_layout = QHBoxLayout()
         header_layout.setSpacing(8)
@@ -81,7 +78,7 @@ class Sidebar(QObject):
         
         parent_layout.addLayout(header_layout)
     
-    def _create_action_buttons(self, parent_layout):
+    def _create_action_buttons(self, parent_layout: QVBoxLayout) -> None:
         """Create action buttons for database operations."""
         action_layout = QHBoxLayout()
         action_layout.setSpacing(8)
@@ -108,7 +105,7 @@ class Sidebar(QObject):
         
         parent_layout.addLayout(action_layout)
     
-    def _create_database_tree(self, parent_layout):
+    def _create_database_tree(self, parent_layout: QVBoxLayout) -> None:
         """Create the tree widget for databases and collections."""
         self.db_tree = QTreeWidget()
         self.db_tree.setHeaderLabel("Databases")
@@ -126,7 +123,7 @@ class Sidebar(QObject):
         
         parent_layout.addWidget(self.db_tree)
     
-    def _create_status_section(self, parent_layout):
+    def _create_status_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the status section at the bottom of sidebar."""
         db_status_layout = QHBoxLayout()
         db_status_layout.setSpacing(8)
@@ -146,7 +143,7 @@ class Sidebar(QObject):
         
         parent_layout.addLayout(db_status_layout)
     
-    def _show_context_menu(self, position):
+    def _show_context_menu(self, position: Any) -> None:
         """Show context menu for database operations."""
         import logging
         logger = logging.getLogger(__name__)
@@ -220,53 +217,53 @@ class Sidebar(QObject):
             global_pos = self.db_tree.mapToGlobal(position)
             context_menu.exec_(global_pos)
     
-    def _handle_add_collection(self, database_name: str):
+    def _handle_add_collection(self, database_name: str) -> None:
         """Handle add collection action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Add collection requested for database: {database_name}")
         self.add_collection_requested.emit(database_name)
     
-    def _handle_rename_database(self, database_name: str):
+    def _handle_rename_database(self, database_name: str) -> None:
         """Handle rename database action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Rename database requested: {database_name}")
         self.rename_database_requested.emit(database_name)
     
-    def _handle_delete_database(self, database_name: str):
+    def _handle_delete_database(self, database_name: str) -> None:
         """Handle delete database action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Delete database requested: {database_name}")
         self.delete_database_requested.emit(database_name)
     
-    def _handle_insert_document(self, database_name: str, collection_name: str):
+    def _handle_insert_document(self, database_name: str, collection_name: str) -> None:
         """Handle insert document action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Insert document requested for {database_name}/{collection_name}")
         self.insert_document_requested.emit(database_name, collection_name)
     
-    def _handle_rename_collection(self, database_name: str, collection_name: str):
+    def _handle_rename_collection(self, database_name: str, collection_name: str) -> None:
         """Handle rename collection action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Rename collection requested: {database_name}/{collection_name}")
         self.rename_collection_requested.emit(database_name, collection_name)
     
-    def _handle_delete_collection(self, database_name: str, collection_name: str):
+    def _handle_delete_collection(self, database_name: str, collection_name: str) -> None:
         """Handle delete collection action with logging."""
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Delete collection requested: {database_name}/{collection_name}")
         self.delete_collection_requested.emit(database_name, collection_name)
     
-    def _get_context_menu_style(self):
+    def _get_context_menu_style(self) -> str:
         """Get the context menu stylesheet."""
         return CONTEXT_MENU_STYLE
     
-    def _on_tree_item_clicked(self, item, column):
+    def _on_tree_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
         """Handle tree item selection."""
         parent = item.parent()
         if parent is None:
@@ -279,20 +276,20 @@ class Sidebar(QObject):
             collection_name = item.text(0).strip()  # Remove leading/trailing spaces
             self.collection_selected.emit(database_name, collection_name)
     
-    def get_widget(self):
+    def get_widget(self) -> QWidget | None:
         """Get the sidebar widget."""
         return self.widget
     
-    def get_tree_widget(self):
+    def get_tree_widget(self) -> QTreeWidget | None:
         """Get the database tree widget."""
         return self.db_tree
     
-    def clear_tree(self):
+    def clear_tree(self) -> None:
         """Clear the database tree."""
         if self.db_tree:
             self.db_tree.clear()
     
-    def add_database(self, database_name: str, collections: list = None):
+    def add_database(self, database_name: str, collections: list[str] | None = None) -> None:
         """Add a database to the tree."""
         if not self.db_tree:
             return
@@ -323,27 +320,27 @@ class Sidebar(QObject):
             if collection_count > 0:
                 db_item.setText(0, f"  {clean_db_name} ({collection_count} collections)")
     
-    def update_database_count(self, count: int):
+    def update_database_count(self, count: int) -> None:
         """Update the database count label."""
         if self.db_count_label:
             self.db_count_label.setText(f"{count} databases")
     
-    def update_selected_database(self, database_name: str):
+    def update_selected_database(self, database_name: str) -> None:
         """Update the selected database label."""
         if self.selected_db_label:
             self.selected_db_label.setText(f"Selected: {database_name}")
     
-    def update_collection_count(self, count: int):
+    def update_collection_count(self, count: int) -> None:
         """Update the collection count label."""
         if self.collection_count_label:
             self.collection_count_label.setText(f"{count} collections")
     
-    def expand_all(self):
+    def expand_all(self) -> None:
         """Expand all items in the tree."""
         if self.db_tree:
             self.db_tree.expandAll()
     
-    def set_loading_state(self, loading: bool):
+    def set_loading_state(self, loading: bool) -> None:
         """Set the loading state for the sidebar."""
         if loading:
             self.db_count_label.setText("Loading databases...")
@@ -351,7 +348,7 @@ class Sidebar(QObject):
         else:
             self.db_count_label.setStyleSheet("color: #6c757d; font-size: 11px; font-style: italic;")
     
-    def set_error_state(self, error_message: str):
+    def set_error_state(self, error_message: str) -> None:
         """Set the error state for the sidebar."""
         self.db_count_label.setText("Error loading databases")
         self.db_count_label.setStyleSheet("color: #dc3545; font-weight: bold;")

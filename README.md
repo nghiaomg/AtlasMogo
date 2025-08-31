@@ -191,10 +191,10 @@ mongodb://host:port/database?options
 ### CRUD Operations
 
 #### Insert Document
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
+   ```json
+   {
+     "name": "John Doe",
+     "email": "john@example.com",
   "age": 30,
   "created_at": "2024-01-01T00:00:00Z"
 }

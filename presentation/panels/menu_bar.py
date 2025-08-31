@@ -3,39 +3,36 @@ Menu Bar Component
 Handles the main menu bar with File, Database, Tools, and Help menus.
 """
 
-from PySide6.QtWidgets import QMenuBar, QMenu
-from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtCore import QObject
+from __future__ import annotations
+
+from typing import Any, Callable
+
 import qtawesome as fa
+from PySide6.QtCore import QObject
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import QMenu, QMenuBar
 
 
 class MenuBar(QObject):
     """Main menu bar for AtlasMogo application."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.menu_bar = None
-        self.actions = {}
+        self.menu_bar: QMenuBar | None = None
+        self.actions: dict[str, QAction] = {}
         self._create_menu_bar()
     
-    def _create_menu_bar(self):
+    def _create_menu_bar(self) -> None:
         """Create the main menu bar with all menus and actions."""
         self.menu_bar = QMenuBar()
         
-        # File Menu
         self._create_file_menu()
-        
-        # Database Menu
         self._create_database_menu()
-        
-        # Tools Menu
         self._create_tools_menu()
-        
-        # Help Menu
         self._create_help_menu()
     
-    def _create_file_menu(self):
+    def _create_file_menu(self) -> None:
         """Create the File menu with connection and data operations."""
         file_menu = self.menu_bar.addMenu("&File")
         
@@ -76,7 +73,7 @@ class MenuBar(QObject):
         self.actions['exit'] = exit_action
         file_menu.addAction(exit_action)
     
-    def _create_database_menu(self):
+    def _create_database_menu(self) -> None:
         """Create the Database menu with database and collection operations."""
         database_menu = self.menu_bar.addMenu("&Database")
         
@@ -123,7 +120,7 @@ class MenuBar(QObject):
         self.actions['refresh'] = refresh_action
         database_menu.addAction(refresh_action)
     
-    def _create_tools_menu(self):
+    def _create_tools_menu(self) -> None:
         """Create the Tools menu with utility functions."""
         tools_menu = self.menu_bar.addMenu("&Tools")
         
@@ -150,7 +147,7 @@ class MenuBar(QObject):
         self.actions['settings'] = settings_action
         tools_menu.addAction(settings_action)
     
-    def _create_help_menu(self):
+    def _create_help_menu(self) -> None:
         """Create the Help menu with documentation and about."""
         help_menu = self.menu_bar.addMenu("&Help")
         
@@ -169,27 +166,27 @@ class MenuBar(QObject):
         self.actions['about'] = about_action
         help_menu.addAction(about_action)
     
-    def get_menu_bar(self):
+    def get_menu_bar(self) -> QMenuBar | None:
         """Get the created menu bar."""
         return self.menu_bar
     
-    def get_action(self, action_name: str):
+    def get_action(self, action_name: str) -> QAction | None:
         """Get a specific action by name."""
         return self.actions.get(action_name)
     
-    def connect_action(self, action_name: str, slot):
+    def connect_action(self, action_name: str, slot: Callable[[], Any]) -> None:
         """Connect an action to a slot function."""
         action = self.actions.get(action_name)
         if action:
             action.triggered.connect(slot)
     
-    def enable_action(self, action_name: str, enabled: bool = True):
+    def enable_action(self, action_name: str, enabled: bool = True) -> None:
         """Enable or disable a specific action."""
         action = self.actions.get(action_name)
         if action:
             action.setEnabled(enabled)
     
-    def set_action_text(self, action_name: str, text: str):
+    def set_action_text(self, action_name: str, text: str) -> None:
         """Set the text for a specific action."""
         action = self.actions.get(action_name)
         if action:

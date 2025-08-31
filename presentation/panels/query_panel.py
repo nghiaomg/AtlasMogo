@@ -3,12 +3,14 @@ Query Panel Component
 Handles MongoDB query execution and results display.
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
-    QTextEdit, QSpinBox, QLabel, QPushButton, QSizePolicy
-)
-from PySide6.QtCore import QObject, Signal
+from __future__ import annotations
+
 import qtawesome as fa
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import (
+    QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+    QSpinBox, QTextEdit, QVBoxLayout, QWidget
+)
 
 
 class QueryPanel(QObject):
@@ -17,29 +19,26 @@ class QueryPanel(QObject):
     # Signals
     query_executed = Signal(str, int)  # Emits query filter, limit
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.widget = None
-        self.query_filter = None
-        self.query_limit = None
-        self.query_results = None
+        self.widget: QWidget | None = None
+        self.query_filter: QTextEdit | None = None
+        self.query_limit: QSpinBox | None = None
+        self.query_results: QTextEdit | None = None
         self._create_query_panel()
     
-    def _create_query_panel(self):
+    def _create_query_panel(self) -> None:
         """Create the query panel widget."""
         self.widget = QWidget()
         layout = QVBoxLayout(self.widget)
         layout.setSpacing(12)
         layout.setContentsMargins(4, 4, 4, 4)
         
-        # Query input section
         self._create_query_input_section(layout)
-        
-        # Results section
         self._create_results_section(layout)
     
-    def _create_query_input_section(self, parent_layout):
+    def _create_query_input_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the query input section."""
         query_group = QGroupBox("Query Documents")
         query_form_layout = QFormLayout(query_group)
@@ -82,7 +81,7 @@ class QueryPanel(QObject):
         
         parent_layout.addWidget(query_group)
     
-    def _create_results_section(self, parent_layout):
+    def _create_results_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the query results section."""
         results_group = QGroupBox("Query Results")
         results_layout = QVBoxLayout(results_group)
@@ -96,7 +95,7 @@ class QueryPanel(QObject):
         
         parent_layout.addWidget(results_group)
     
-    def _on_execute_clicked(self):
+    def _on_execute_clicked(self) -> None:
         """Handle execute query button click."""
         query_text = self.query_filter.toPlainText().strip()
         limit = self.query_limit.value()
@@ -107,70 +106,70 @@ class QueryPanel(QObject):
             # Execute with empty filter (get all documents)
             self.query_executed.emit("", limit)
     
-    def get_widget(self):
+    def get_widget(self) -> QWidget | None:
         """Get the query panel widget."""
         return self.widget
     
-    def get_query_filter(self):
+    def get_query_filter(self) -> str:
         """Get the current query filter text."""
         if self.query_filter:
             return self.query_filter.toPlainText().strip()
         return ""
     
-    def get_query_limit(self):
+    def get_query_limit(self) -> int:
         """Get the current query limit value."""
         if self.query_limit:
             return self.query_limit.value()
         return 100
     
-    def set_query_filter(self, text: str):
+    def set_query_filter(self, text: str) -> None:
         """Set the query filter text."""
         if self.query_filter:
             self.query_filter.setPlainText(text)
     
-    def set_query_limit(self, limit: int):
+    def set_query_limit(self, limit: int) -> None:
         """Set the query limit value."""
         if self.query_limit:
             self.query_limit.setValue(limit)
     
-    def set_query_results(self, results: str):
+    def set_query_results(self, results: str) -> None:
         """Set the query results text."""
         if self.query_results:
             self.query_results.setPlainText(results)
     
-    def clear_query_filter(self):
+    def clear_query_filter(self) -> None:
         """Clear the query filter text."""
         if self.query_filter:
             self.query_filter.clear()
     
-    def clear_query_results(self):
+    def clear_query_results(self) -> None:
         """Clear the query results."""
         if self.query_results:
             self.query_results.clear()
     
-    def set_query_placeholder(self, text: str):
+    def set_query_placeholder(self, text: str) -> None:
         """Set the placeholder text for query filter."""
         if self.query_filter:
             self.query_filter.setPlaceholderText(text)
     
-    def set_results_placeholder(self, text: str):
+    def set_results_placeholder(self, text: str) -> None:
         """Set the placeholder text for query results."""
         if self.query_results:
             self.query_results.setPlaceholderText(text)
     
-    def enable_query_execution(self, enabled: bool = True):
+    def enable_query_execution(self, enabled: bool = True) -> None:
         """Enable or disable query execution."""
         if self.query_filter:
             self.query_filter.setEnabled(enabled)
         if self.query_limit:
             self.query_limit.setEnabled(enabled)
     
-    def set_query_filter_readonly(self, readonly: bool = True):
+    def set_query_filter_readonly(self, readonly: bool = True) -> None:
         """Set the query filter to read-only mode."""
         if self.query_filter:
             self.query_filter.setReadOnly(readonly)
     
-    def set_results_readonly(self, readonly: bool = True):
+    def set_results_readonly(self, readonly: bool = True) -> None:
         """Set the results area to read-only mode."""
         if self.query_results:
             self.query_results.setReadOnly(readonly)

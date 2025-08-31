@@ -3,13 +3,15 @@ Connection Panel Component
 Handles the MongoDB connection configuration and status display.
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
-    QLineEdit, QLabel, QPushButton, QSizePolicy
-)
+from __future__ import annotations
+
+import qtawesome as fa
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QFont
-import qtawesome as fa
+from PySide6.QtWidgets import (
+    QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QSizePolicy, QVBoxLayout, QWidget
+)
 
 # Import styles
 from ..styles.styles import BUTTON_STYLES, CONNECTION_PANEL_STYLE
@@ -23,20 +25,21 @@ class ConnectionPanel(QObject):
     disconnect_requested = Signal()
     test_requested = Signal(str)  # Emits connection string for testing
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.parent = parent
-        self.widget = None
-        self.connection_input = None
-        self.connection_status_label = None
-        self.loading_spinner = None
-        self.connection_message = None
-        self.connect_button = None
-        self.disconnect_button = None
-        self.test_button = None
+        self.widget: QGroupBox | None = None
+        self.connection_input: QLineEdit | None = None
+        self.connection_status_label: QLabel | None = None
+        self.loading_spinner: QLabel | None = None
+        self.connection_message: QLabel | None = None
+        self.connect_button: QPushButton | None = None
+        self.disconnect_button: QPushButton | None = None
+        self.test_button: QPushButton | None = None
+        self.main_layout: QFormLayout | None = None
         self._create_connection_panel()
     
-    def _create_connection_panel(self):
+    def _create_connection_panel(self) -> None:
         """Create the connection configuration panel."""
         self.widget = QGroupBox("MongoDB Connection")
         self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -48,16 +51,11 @@ class ConnectionPanel(QObject):
         self.main_layout.setSpacing(10)
         self.main_layout.setContentsMargins(12, 16, 12, 12)
         
-        # Connection string input
         self._create_connection_input(self.main_layout)
-        
-        # Connection status and progress
         self._create_status_section(self.main_layout)
-        
-        # Connection buttons
         self._create_button_section(self.main_layout)
     
-    def _create_connection_input(self, parent_layout):
+    def _create_connection_input(self, parent_layout: QFormLayout) -> None:
         """Create the connection string input field."""
         self.connection_input = QLineEdit()
         self.connection_input.setPlaceholderText("mongodb://localhost:27017")
@@ -66,7 +64,7 @@ class ConnectionPanel(QObject):
         self.connection_input.setMinimumHeight(28)
         parent_layout.addRow("Connection String:", self.connection_input)
     
-    def _create_status_section(self, parent_layout):
+    def _create_status_section(self, parent_layout: QFormLayout) -> None:
         """Create the status display section."""
         status_layout = QHBoxLayout()
         status_layout.setSpacing(10)
@@ -95,7 +93,7 @@ class ConnectionPanel(QObject):
         
         parent_layout.addRow("", status_layout)
     
-    def _create_button_section(self, parent_layout):
+    def _create_button_section(self, parent_layout: QFormLayout) -> None:
         """Create the connection control buttons."""
         button_layout = QHBoxLayout()
         button_layout.setSpacing(8)
@@ -134,38 +132,38 @@ class ConnectionPanel(QObject):
         
         parent_layout.addRow("", button_layout)
     
-    def _on_connect_clicked(self):
+    def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
         connection_string = self.connection_input.text().strip()
         if connection_string:
             self.connect_requested.emit(connection_string)
     
-    def _on_disconnect_clicked(self):
+    def _on_disconnect_clicked(self) -> None:
         """Handle disconnect button click."""
         self.disconnect_requested.emit()
     
-    def _on_test_clicked(self):
+    def _on_test_clicked(self) -> None:
         """Handle test connection button click."""
         connection_string = self.connection_input.text().strip()
         if connection_string:
             self.test_requested.emit(connection_string)
     
-    def get_widget(self):
+    def get_widget(self) -> QGroupBox | None:
         """Get the connection panel widget."""
         return self.widget
     
-    def get_connection_string(self):
+    def get_connection_string(self) -> str:
         """Get the current connection string."""
         if self.connection_input:
             return self.connection_input.text().strip()
         return ""
     
-    def set_connection_string(self, connection_string: str):
+    def set_connection_string(self, connection_string: str) -> None:
         """Set the connection string input."""
         if self.connection_input:
             self.connection_input.setText(connection_string)
     
-    def set_connection_state(self, state: str):
+    def set_connection_state(self, state: str) -> None:
         """Set the connection state display."""
         if state == "disconnected":
             self.connection_status_label.setText("Disconnected")
@@ -221,7 +219,7 @@ class ConnectionPanel(QObject):
             # Show the connection panel when failed
             self.show_connection_panel()
     
-    def set_test_result(self, success: bool, message: str):
+    def set_test_result(self, success: bool, message: str) -> None:
         """Set the test connection result."""
         if success:
             self.connection_message.setText("Connection test successful!")
@@ -230,25 +228,25 @@ class ConnectionPanel(QObject):
             self.connection_message.setText("Connection test failed!")
             self.connection_message.setStyleSheet("color: #dc3545; font-weight: bold;")
     
-    def reset_message(self):
+    def reset_message(self) -> None:
         """Reset the connection message to default state."""
         # This will be called by a timer to reset the message
         pass
     
-    def enable_input(self, enabled: bool = True):
+    def enable_input(self, enabled: bool = True) -> None:
         """Enable or disable the connection input field."""
         if self.connection_input:
             self.connection_input.setEnabled(enabled)
     
-    def set_placeholder_text(self, text: str):
+    def set_placeholder_text(self, text: str) -> None:
         """Set the placeholder text for the connection input."""
         if self.connection_input:
             self.connection_input.setPlaceholderText(text)
     
-    def hide_connection_panel(self):
+    def hide_connection_panel(self) -> None:
         """Completely hide the connection panel after successful connection."""
         self.widget.setVisible(False)
     
-    def show_connection_panel(self):
+    def show_connection_panel(self) -> None:
         """Show the connection panel when disconnecting."""
         self.widget.setVisible(True)
