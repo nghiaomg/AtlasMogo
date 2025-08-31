@@ -281,6 +281,35 @@ class MongoService:
             logger.error(f"Error deleting document: {e}")
             return False, f"Delete error: {str(e)}"
     
+    def delete_document_by_id(self, database_name: str, collection_name: str, 
+                             document_id) -> Tuple[bool, str]:
+        """
+        Delete a document by its _id.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            document_id: The _id of the document to delete
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self._repository:
+            return False, "Not connected to MongoDB"
+        
+        try:
+            logger.info(f"Attempting to delete document with _id: {document_id}")
+            success = self._repository.delete_document_by_id(database_name, collection_name, document_id)
+            if success:
+                logger.info(f"Successfully deleted document with _id: {document_id}")
+                return True, f"Document with _id {document_id} deleted successfully"
+            else:
+                logger.warning(f"No document found with _id: {document_id}")
+                return False, f"No document found with _id {document_id}"
+        except Exception as e:
+            logger.error(f"Error deleting document with _id {document_id}: {e}", exc_info=True)
+            return False, f"Delete error: {str(e)}"
+    
     def create_collection(self, database_name: str, collection_name: str) -> Tuple[bool, str]:
         """
         Create a new collection.

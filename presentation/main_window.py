@@ -1165,21 +1165,48 @@ class MainWindow(QMainWindow):
             MessageBoxHelper.warning(self, "Warning", "No collection selected.")
             return
         
+        # Get the document data for the selected row
+        document = self.data_table.get_document_by_row(row)
+        if not document:
+            logger.error(f"No document found at row {row}")
+            MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
+            return
+        
+        # Get the document _id
+        document_id = document.get("_id")
+        if not document_id:
+            logger.error(f"Document at row {row} has no _id field")
+            MessageBoxHelper.warning(self, "Warning", "Document has no _id field and cannot be deleted.")
+            return
+        
+        logger.info(f"Attempting to delete document with _id: {document_id}")
+        
         reply = MessageBoxHelper.question(
             self,
             "Confirm Delete",
-            f"Are you sure you want to delete the document at row {row}?"
+            f"Are you sure you want to delete the document at row {row}?\n\nDocument ID: {document_id}"
         )
         
         if reply:
-            # TODO: Implement actual document deletion by row
-            # For now, just remove from table
-            if self.data_table.remove_selected_row():
-                MessageBoxHelper.information(self, "Success", "Document removed from table.")
-                # Refresh the documents to update counts
+            logger.info(f"User confirmed deletion of document with _id: {document_id}")
+            
+            # Delete the document from MongoDB
+            success, message = self.mongo_service.delete_document_by_id(
+                self.current_database, 
+                self.current_collection, 
+                document_id
+            )
+            
+            if success:
+                logger.info(f"Successfully deleted document with _id: {document_id}")
+                MessageBoxHelper.information(self, "Success", f"Document deleted successfully.\n\n{message}")
+                # Refresh the documents to update the table
                 self.refresh_documents()
             else:
-                MessageBoxHelper.warning(self, "Warning", "No document selected for deletion.")
+                logger.error(f"Failed to delete document with _id: {document_id} - {message}")
+                MessageBoxHelper.critical(self, "Error", f"Failed to delete document.\n\n{message}")
+        else:
+            logger.info("User cancelled document deletion")
     
     def on_insert_document(self):
         """Handle insert document toolbar action."""

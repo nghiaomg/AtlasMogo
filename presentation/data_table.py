@@ -32,6 +32,7 @@ class DataTable(QObject):
         self.documents_table = None
         self.collection_label = None
         self.doc_count_label = None
+        self.documents_data = []  # Store the actual document data
         self._create_data_table()
     
     def _create_data_table(self):
@@ -150,6 +151,9 @@ class DataTable(QObject):
         
         logger.debug(f"Populating table with {len(documents) if documents else 0} documents")
         
+        # Store the document data for later use
+        self.documents_data = documents if documents else []
+        
         # Clear existing data
         self.documents_table.clear()
         
@@ -225,13 +229,17 @@ class DataTable(QObject):
         
         logger.debug(f"Successfully populated table with {len(documents)} documents")
     
+    def get_document_by_row(self, row: int):
+        """Get document data by row index."""
+        if 0 <= row < len(self.documents_data):
+            return self.documents_data[row]
+        return None
+    
     def get_selected_document(self):
         """Get the currently selected document."""
         current_row = self.documents_table.currentRow()
         if current_row >= 0:
-            # This is a simplified approach - you might want to store
-            # the full document data separately and reference it by row
-            return {"row": current_row}
+            return self.get_document_by_row(current_row)
         return None
     
     def remove_selected_row(self):

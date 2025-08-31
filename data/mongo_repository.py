@@ -216,6 +216,40 @@ class MongoRepository:
             logger.error(f"Error deleting document from {collection_name}: {e}")
             return False
     
+    def delete_document_by_id(self, database_name: str, collection_name: str, 
+                             document_id) -> bool:
+        """
+        Delete a document by its _id.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            document_id: The _id of the document to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from bson import ObjectId
+            
+            db = self._client[database_name]
+            collection = db[collection_name]
+            
+            # Convert string _id to ObjectId if needed
+            if isinstance(document_id, str):
+                try:
+                    document_id = ObjectId(document_id)
+                except Exception:
+                    # If it's not a valid ObjectId, use as string
+                    pass
+            
+            result = collection.delete_one({"_id": document_id})
+            logger.info(f"Document deleted by _id {document_id}: {result.deleted_count} deleted")
+            return result.deleted_count > 0
+        except PyMongoError as e:
+            logger.error(f"Error deleting document with _id {document_id} from {collection_name}: {e}")
+            return False
+    
     def create_collection(self, database_name: str, collection_name: str) -> bool:
         """
         Create a new collection.
