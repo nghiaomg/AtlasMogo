@@ -120,16 +120,46 @@ class MongoService:
             logger.error(f"Error getting collection stats: {e}")
             return {}
     
-    def find_documents(self, database_name: str, collection_name: str, 
-                      query: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_collection_info(self, database_name: str, collection_name: str) -> Dict[str, Any]:
         """
-        Find documents in a collection.
+        Get comprehensive collection information including count and stats.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            
+        Returns:
+            Collection information with count and stats
+        """
+        if not self._repository:
+            return {"count": 0, "stats": {}}
+        
+        try:
+            count = self._repository.count_documents(database_name, collection_name)
+            stats = self._repository.get_collection_stats(database_name, collection_name)
+            
+            return {
+                "count": count,
+                "stats": stats,
+                "estimated_size_mb": stats.get("size", 0) / (1024 * 1024) if stats else 0
+            }
+        except Exception as e:
+            logger.error(f"Error getting collection info: {e}")
+            return {"count": 0, "stats": {}}
+    
+    def find_documents(self, database_name: str, collection_name: str, 
+                      query: str = None, limit: int = 100, 
+                      skip: int = 0, sort: List[Tuple[str, int]] = None) -> List[Dict[str, Any]]:
+        """
+        Find documents in a collection with pagination support.
         
         Args:
             database_name: Name of the database
             collection_name: Name of the collection
             query: JSON string query filter
             limit: Maximum number of documents
+            skip: Number of documents to skip (for pagination)
+            sort: List of (field, direction) tuples for sorting (1=asc, -1=desc)
             
         Returns:
             List of documents
@@ -144,7 +174,9 @@ class MongoService:
                 import json
                 query_dict = json.loads(query)
             
-            return self._repository.find_documents(database_name, collection_name, query_dict, limit)
+            return self._repository.find_documents(
+                database_name, collection_name, query_dict, limit, skip, sort
+            )
         except json.JSONDecodeError:
             logger.error("Invalid JSON query format")
             return []

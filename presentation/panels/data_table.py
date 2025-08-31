@@ -12,8 +12,12 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QAction, QFont, QIcon
 from PySide6.QtWidgets import (
     QHBoxLayout, QHeaderView, QLabel, QMenu, QProgressBar, QPushButton,
-    QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+    QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QSpinBox, QFrame, QGridLayout, QComboBox
 )
+
+# Import styles at module level
+from ..styles.styles import BUTTON_STYLES
 
 
 class DataTable(QObject):
@@ -22,6 +26,10 @@ class DataTable(QObject):
     # Signals
     document_selected = Signal(dict)  # Emits selected document
     refresh_requested = Signal()
+    
+    # Pagination signals
+    page_changed = Signal(int)  # Emits new page number
+    page_size_changed = Signal(int)  # Emits new page size
     
     # Document context menu signals
     view_document_requested = Signal(dict)  # Emits selected document
@@ -37,6 +45,23 @@ class DataTable(QObject):
         self.doc_count_label: QLabel | None = None
         self.loading_indicator: QProgressBar | None = None
         self.documents_data: list[dict[str, Any]] = []  # Store the actual document data
+        
+        # Pagination properties
+        self.current_page = 1
+        self.page_size = 50
+        self.total_documents = 0
+        self.total_pages = 1
+        
+        # Pagination UI elements
+        self.pagination_frame: QFrame | None = None
+        self.page_info_label: QLabel | None = None
+        self.page_size_spinbox: QComboBox | None = None
+        self.first_page_btn: QPushButton | None = None
+        self.prev_page_btn: QPushButton | None = None
+        self.next_page_btn: QPushButton | None = None
+        self.last_page_btn: QPushButton | None = None
+        self.go_to_page_spinbox: QSpinBox | None = None
+        
         self._create_data_table()
     
     def _create_data_table(self) -> None:
@@ -49,6 +74,7 @@ class DataTable(QObject):
         self._create_info_header(layout)
         self._create_loading_indicator(layout)
         self._create_documents_table(layout)
+        self._create_pagination_controls(layout)
     
     def _create_info_header(self, parent_layout: QVBoxLayout) -> None:
         """Create the information header with collection details."""
@@ -71,33 +97,136 @@ class DataTable(QObject):
         
         # Refresh documents button
         refresh_docs_button = QPushButton("Refresh Documents")
-        refresh_docs_button.setIcon(fa.icon('fa6s.arrows-rotate', color='#3b82f6'))
+        refresh_docs_button.setIcon(fa.icon('fa6s.arrows-rotate', color='#ffffff'))  # White icon for contrast
         refresh_docs_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         refresh_docs_button.setMinimumHeight(28)
-        refresh_docs_button.clicked.connect(self.refresh_requested.emit)
+        refresh_docs_button.setStyleSheet(BUTTON_STYLES['refresh_primary'])  # Use primary refresh style
+        refresh_docs_button.clicked.connect(self._on_refresh_clicked)
         info_layout.addWidget(refresh_docs_button)
         
         parent_layout.addLayout(info_layout)
     
+    def _on_refresh_clicked(self):
+        """Handle refresh button click with logging."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("[UI] Refresh button clicked")
+        self.refresh_requested.emit()
+    
+    def _on_page_size_changed(self, new_page_size: int) -> None:
+        """Handle page size change."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if new_page_size != self.page_size:
+            self.page_size = new_page_size
+            self.current_page = 1  # Reset to first page
+            logger.info(f"[PAGINATION] Page size changed to {new_page_size}")
+            self.page_size_changed.emit(new_page_size)
+    
+    def _go_to_first_page(self) -> None:
+        """Go to the first page."""
+        if self.current_page != 1:
+            self._go_to_page(1)
+    
+    def _go_to_previous_page(self) -> None:
+        """Go to the previous page."""
+        if self.current_page > 1:
+            self._go_to_page(self.current_page - 1)
+    
+    def _go_to_next_page(self) -> None:
+        """Go to the next page."""
+        if self.current_page < self.total_pages:
+            self._go_to_page(self.current_page + 1)
+    
+    def _go_to_last_page(self) -> None:
+        """Go to the last page."""
+        if self.current_page != self.total_pages:
+            self._go_to_page(self.total_pages)
+    
+    def _go_to_specific_page(self, page_number: int) -> None:
+        """Go to a specific page number."""
+        if 1 <= page_number <= self.total_pages and page_number != self.current_page:
+            self._go_to_page(page_number)
+    
+    def _go_to_page(self, page_number: int) -> None:
+        """Internal method to navigate to a specific page."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if 1 <= page_number <= self.total_pages:
+            self.current_page = page_number
+            logger.info(f"[PAGINATION] Navigating to page {page_number}")
+            self.page_changed.emit(page_number)
+        else:
+            logger.warning(f"[PAGINATION] Invalid page number: {page_number}")
+    
+    def _update_pagination_controls(self) -> None:
+        """Update pagination control states and labels."""
+        if not self.pagination_frame:
+            return
+        
+        # Update page info label
+        if self.page_info_label:
+            self.page_info_label.setText(f"Page {self.current_page} of {self.total_pages}")
+        
+        # Update go-to-page spinbox range
+        if self.go_to_page_spinbox:
+            self.go_to_page_spinbox.setRange(1, self.total_pages)
+            self.go_to_page_spinbox.setValue(self.current_page)
+        
+        # Update navigation button states
+        if self.first_page_btn:
+            self.first_page_btn.setEnabled(self.current_page > 1)
+        
+        if self.prev_page_btn:
+            self.prev_page_btn.setEnabled(self.current_page > 1)
+        
+        if self.next_page_btn:
+            self.next_page_btn.setEnabled(self.current_page < self.total_pages)
+        
+        if self.last_page_btn:
+            self.last_page_btn.setEnabled(self.current_page < self.total_pages)
+    
     def _create_loading_indicator(self, parent_layout: QVBoxLayout) -> None:
-        """Create the loading indicator."""
+        """Create the loading indicator with contextual messages."""
+        loading_layout = QHBoxLayout()
+        loading_layout.setSpacing(8)
+        
+        # Loading spinner
         self.loading_indicator = QProgressBar()
         self.loading_indicator.setVisible(False)
         self.loading_indicator.setRange(0, 0)  # Indeterminate progress
+        self.loading_indicator.setMaximumHeight(20)
         self.loading_indicator.setStyleSheet("""
             QProgressBar {
                 border: 1px solid #e5e7eb;
                 border-radius: 4px;
                 background-color: #f9fafb;
                 height: 20px;
-                margin: 4px 0px;
             }
             QProgressBar::chunk {
                 background-color: #3b82f6;
                 border-radius: 3px;
             }
         """)
-        parent_layout.addWidget(self.loading_indicator)
+        
+        # Loading message label
+        self.loading_message = QLabel("")
+        self.loading_message.setVisible(False)
+        self.loading_message.setStyleSheet("""
+            QLabel {
+                color: #6b7280;
+                font-size: 11px;
+                font-style: italic;
+            }
+        """)
+        
+        loading_layout.addWidget(self.loading_indicator)
+        loading_layout.addWidget(self.loading_message)
+        loading_layout.addStretch()
+        
+        parent_layout.addLayout(loading_layout)
     
     def _create_documents_table(self, parent_layout: QVBoxLayout) -> None:
         """Create the documents table widget."""
@@ -127,6 +256,170 @@ class DataTable(QObject):
         self.documents_table.customContextMenuRequested.connect(self._show_context_menu)
         
         parent_layout.addWidget(self.documents_table)
+    
+    def _create_pagination_controls(self, parent_layout: QVBoxLayout) -> None:
+        """Create compact, user-friendly pagination controls."""
+        # Main pagination container - no border, clean background
+        self.pagination_frame = QFrame()
+        self.pagination_frame.setStyleSheet("""
+            QFrame {
+                background-color: transparent;
+                padding: 8px;
+            }
+        """)
+        
+        # Main horizontal layout for pagination
+        pagination_layout = QHBoxLayout(self.pagination_frame)
+        pagination_layout.setSpacing(12)
+        pagination_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Left side: Navigation controls (centered)
+        nav_container = QFrame()
+        nav_container.setStyleSheet("background-color: transparent;")
+        nav_layout = QHBoxLayout(nav_container)
+        nav_layout.setSpacing(8)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Navigation buttons with improved styling
+        self.first_page_btn = QPushButton("⏮")
+        self.first_page_btn.setToolTip("Go to first page")
+        self.first_page_btn.setStyleSheet(BUTTON_STYLES['pagination_nav'])
+        self.first_page_btn.clicked.connect(self._go_to_first_page)
+        self.first_page_btn.setEnabled(False)
+        
+        self.prev_page_btn = QPushButton("◀")
+        self.prev_page_btn.setToolTip("Go to previous page")
+        self.prev_page_btn.setStyleSheet(BUTTON_STYLES['pagination_nav'])
+        self.prev_page_btn.clicked.connect(self._go_to_previous_page)
+        self.prev_page_btn.setEnabled(False)
+        
+        # Page info label - centered and prominent
+        self.page_info_label = QLabel("Page 1 of 1")
+        self.page_info_label.setStyleSheet("""
+            QLabel {
+                color: #374151;
+                font-weight: 600;
+                font-size: 12px;
+                min-width: 80px;
+                padding: 0 8px;
+            }
+        """)
+        self.page_info_label.setAlignment(Qt.AlignCenter)
+        
+        self.next_page_btn = QPushButton("▶")
+        self.next_page_btn.setToolTip("Go to next page")
+        self.next_page_btn.setStyleSheet(BUTTON_STYLES['pagination_nav'])
+        self.next_page_btn.clicked.connect(self._go_to_next_page)
+        self.next_page_btn.setEnabled(False)
+        
+        self.last_page_btn = QPushButton("⏭")
+        self.last_page_btn.setToolTip("Go to last page")
+        self.last_page_btn.setStyleSheet(BUTTON_STYLES['pagination_nav'])
+        self.last_page_btn.clicked.connect(self._go_to_last_page)
+        self.last_page_btn.setEnabled(False)
+        
+        # Add navigation controls to nav container
+        nav_layout.addWidget(self.first_page_btn)
+        nav_layout.addWidget(self.prev_page_btn)
+        nav_layout.addWidget(self.page_info_label)
+        nav_layout.addWidget(self.next_page_btn)
+        nav_layout.addWidget(self.last_page_btn)
+        
+        # Right side: Page size and go-to controls
+        controls_container = QFrame()
+        controls_container.setStyleSheet("background-color: transparent;")
+        controls_layout = QHBoxLayout(controls_container)
+        controls_layout.setSpacing(8)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Page size selector
+        page_size_label = QLabel("Page Size:")
+        page_size_label.setStyleSheet("""
+            QLabel {
+                color: #6b7280;
+                font-size: 11px;
+                font-weight: 500;
+            }
+        """)
+        
+        self.page_size_spinbox = QComboBox()
+        self.page_size_spinbox.addItems(["10", "25", "50", "100"])
+        # Set current value, defaulting to 50 if current page_size is not in the list
+        current_size = str(self.page_size) if str(self.page_size) in ["10", "25", "50", "100"] else "50"
+        self.page_size_spinbox.setCurrentText(current_size)
+        self.page_size_spinbox.setStyleSheet(BUTTON_STYLES['pagination_control'].replace('QSpinBox', 'QComboBox'))
+        self.page_size_spinbox.currentTextChanged.connect(lambda text: self._on_page_size_changed(int(text)))
+        
+        # Go to page input
+        go_to_label = QLabel("Go to:")
+        go_to_label.setStyleSheet("""
+            QLabel {
+                color: #6b7280;
+                font-size: 11px;
+                font-weight: 500;
+            }
+        """)
+        
+        self.go_to_page_spinbox = QSpinBox()
+        self.go_to_page_spinbox.setRange(1, 1)
+        self.go_to_page_spinbox.setValue(1)
+        self.go_to_page_spinbox.setStyleSheet(BUTTON_STYLES['pagination_control'])
+        self.go_to_page_spinbox.valueChanged.connect(self._go_to_specific_page)
+        
+        # Add Enter key support for go-to page
+        self.go_to_page_spinbox.installEventFilter(self)
+        
+        # Add keyboard navigation support for navigation buttons
+        self.first_page_btn.installEventFilter(self)
+        self.prev_page_btn.installEventFilter(self)
+        self.next_page_btn.installEventFilter(self)
+        self.last_page_btn.installEventFilter(self)
+        
+        # Add controls to right container
+        controls_layout.addWidget(page_size_label)
+        controls_layout.addWidget(self.page_size_spinbox)
+        controls_layout.addWidget(go_to_label)
+        controls_layout.addWidget(self.go_to_page_spinbox)
+        
+        # Main layout: Navigation (centered) | Controls (right-aligned)
+        pagination_layout.addStretch()  # Left spacer
+        pagination_layout.addWidget(nav_container)  # Center navigation
+        pagination_layout.addStretch()  # Right spacer
+        pagination_layout.addWidget(controls_container)  # Right controls
+        
+        parent_layout.addWidget(self.pagination_frame)
+    
+    def eventFilter(self, obj, event):
+        """Handle events for pagination controls."""
+        if event.type() == event.Type.KeyPress:
+            if obj == self.go_to_page_spinbox:
+                if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+                    # Enter key pressed - navigate to the specified page
+                    page_number = self.go_to_page_spinbox.value()
+                    if 1 <= page_number <= self.total_pages:
+                        self._go_to_page(page_number)
+                    return True
+            elif obj == self.first_page_btn and event.key() == Qt.Key.Key_Home:
+                # Home key pressed - go to first page
+                if self.first_page_btn.isEnabled():
+                    self._go_to_first_page()
+                return True
+            elif obj == self.prev_page_btn and event.key() == Qt.Key.Key_Left:
+                # Left arrow key pressed - go to previous page
+                if self.prev_page_btn.isEnabled():
+                    self._go_to_previous_page()
+                return True
+            elif obj == self.next_page_btn and event.key() == Qt.Key.Key_Right:
+                # Right arrow key pressed - go to next page
+                if self.next_page_btn.isEnabled():
+                    self._go_to_next_page()
+                return True
+            elif obj == self.last_page_btn and event.key() == Qt.Key.Key_End:
+                # End key pressed - go to last page
+                if self.last_page_btn.isEnabled():
+                    self._go_to_last_page()
+                return True
+        return super().eventFilter(obj, event)
     
     def _on_selection_changed(self) -> None:
         """Handle table selection changes."""
@@ -158,6 +451,28 @@ class DataTable(QObject):
         
         if self.doc_count_label:
             self.doc_count_label.setText(f"Documents: {document_count}")
+        
+        # Update pagination information
+        self.total_documents = document_count
+        self.total_pages = max(1, (document_count + self.page_size - 1) // self.page_size)
+        
+        # Reset to first page if current page is out of range
+        if self.current_page > self.total_pages:
+            self.current_page = 1
+        
+        # Update pagination controls
+        self._update_pagination_controls()
+    
+    def set_pagination_info(self, current_page: int, total_pages: int, page_size: int = None) -> None:
+        """Set pagination information."""
+        if page_size is not None:
+            self.page_size = page_size
+        
+        self.current_page = current_page
+        self.total_pages = total_pages
+        
+        # Update pagination controls
+        self._update_pagination_controls()
     
     def populate_documents(self, documents: list[dict[str, Any]]) -> None:
         """Populate the table with documents in phpMyAdmin-style format."""
@@ -305,10 +620,18 @@ class DataTable(QObject):
             logger.warning("No row selected for removal")
             return False
     
-    def set_loading_state(self, loading: bool) -> None:
-        """Set the loading state for the data table."""
+    def set_loading_state(self, loading: bool, message: str = "") -> None:
+        """Set the loading state for the data table with contextual message."""
         if self.loading_indicator:
             self.loading_indicator.setVisible(loading)
+        
+        if self.loading_message:
+            if loading and message:
+                self.loading_message.setText(message)
+                self.loading_message.setVisible(True)
+            else:
+                self.loading_message.setVisible(False)
+                self.loading_message.setText("")
         
         # Don't change the document count label text during loading
         # Just show/hide the loading indicator
@@ -335,6 +658,15 @@ class DataTable(QObject):
         """Enable or disable sorting in the table."""
         if self.documents_table:
             self.documents_table.setSortingEnabled(enabled)
+    
+    def get_pagination_state(self) -> dict:
+        """Get current pagination state."""
+        return {
+            "current_page": self.current_page,
+            "page_size": self.page_size,
+            "total_documents": self.total_documents,
+            "total_pages": self.total_pages
+        }
     
     def _show_context_menu(self, position: Any) -> None:
         """Show context menu for document operations."""

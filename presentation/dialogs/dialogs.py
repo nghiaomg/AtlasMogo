@@ -60,40 +60,83 @@ class CreateDatabaseDialog(QDialog):
         
         layout.addLayout(form_layout)
         
-        # Info text
-        info_label = QLabel("Note: Database will be created with a temporary collection that will be automatically removed.")
+        # Info text - Updated to reflect the actual implementation
+        info_label = QLabel("Note: Database will be created with an initialization collection to ensure visibility.")
         info_label.setWordWrap(True)
         info_label.setStyleSheet("color: #6b7280; font-size: 11px; font-style: italic; margin-top: 8px;")
         layout.addWidget(info_label)
         
-        # Buttons
-        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+        # Buttons - Use create_standard_buttons for proper accept/reject binding
+        button_layout, button_dict = DialogHelper.create_standard_buttons(
             self,
             primary_text="Create Database",
-            primary_role="ok",
-            primary_icon="fa6s.plus",
-            secondary_text="Cancel",
-            secondary_role="cancel",
-            secondary_icon="fa6s.xmark"
+            primary_action=self.accept_dialog,
+            secondary_text="Cancel"
         )
-        self.create_btn = button_dict['primary']  # Primary button
+        self.create_btn = button_dict['primary']  # Primary button (blue full background)
+        self.cancel_btn = button_dict['secondary']  # Secondary button (outlined)
         layout.addLayout(button_layout)
         
         # Set focus to database name input
         self.db_name_edit.setFocus()
         
+        # Initial validation
+        self.validate_input()
+        
     def validate_input(self):
         """Validate the input fields."""
         db_name = self.db_name_edit.text().strip()
-        self.create_btn.setEnabled(len(db_name) > 0 and not db_name.startswith('__'))
+        is_valid = len(db_name) > 0 and not db_name.startswith('__')
+        self.create_btn.setEnabled(is_valid)
+        
+        # Log validation result
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Database name validation: '{db_name}' -> Valid: {is_valid}")
+        
+    def accept_dialog(self):
+        """Handle dialog acceptance with validation."""
+        db_name = self.db_name_edit.text().strip()
+        
+        # Final validation before accepting
+        if not db_name:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation Error", "Please enter a database name.")
+            return
+            
+        if db_name.startswith('__'):
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation Error", "Database names cannot start with '__'.")
+            return
+        
+        # Store the validated name and accept
+        self.database_name = db_name
+        
+        # Log successful acceptance
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[DIALOG: Create Database] → Confirmed with database: {db_name}")
+        
+        self.accept()
         
     def get_database_name(self):
         """Get the entered database name."""
-        return self.db_name_edit.text().strip()
+        return self.database_name
     
     def exec_(self):
         """Override exec_ to log dialog result."""
         result = super().exec_()
+        
+        # Log the result
+        if result == QDialog.Accepted:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[DIALOG: Create Database] → Accepted with database: '{self.database_name}'")
+        else:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[DIALOG: Create Database] → Cancelled by user")
+        
         log_dialog_result(self, result)
         return result
 
@@ -578,7 +621,7 @@ class SettingsDialog(QDialog):
             self,
             primary_text="Save Settings",
             primary_role="ok",
-            primary_icon="fa6s.save",
+            primary_icon="fa6s.check",
             secondary_text="Cancel",
             secondary_role="cancel",
             secondary_icon="fa6s.xmark"
@@ -837,7 +880,7 @@ class EditDocumentDialog(QDialog):
             self,
             primary_text="Save Changes",
             primary_role="ok",
-            primary_icon="fa6s.save",
+            primary_icon="fa6s.check",
             secondary_text="Cancel",
             secondary_role="cancel",
             secondary_icon="fa6s.xmark"

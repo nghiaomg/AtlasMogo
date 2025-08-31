@@ -18,6 +18,9 @@ from PySide6.QtWidgets import (
     QTextEdit, QVBoxLayout, QWidget, QToolTip
 )
 
+# Import styles at module level
+from ..styles.styles import BUTTON_STYLES
+
 
 class MongoDBJSONEncoder(json.JSONEncoder):
     """Custom JSON encoder for MongoDB documents with ObjectId and other special types."""
@@ -623,13 +626,21 @@ class ObjectView(QObject):
         
         # Refresh documents button
         refresh_docs_button = QPushButton("Refresh Documents")
-        refresh_docs_button.setIcon(fa.icon('fa6s.arrows-rotate', color='#3b82f6'))
+        refresh_docs_button.setIcon(fa.icon('fa6s.arrows-rotate', color='#ffffff'))  # White icon for contrast
         refresh_docs_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         refresh_docs_button.setMinimumHeight(28)
-        refresh_docs_button.clicked.connect(self.refresh_requested.emit)
+        refresh_docs_button.setStyleSheet(BUTTON_STYLES['refresh_primary'])  # Use primary refresh style
+        refresh_docs_button.clicked.connect(self._on_refresh_clicked)
         info_layout.addWidget(refresh_docs_button)
         
         parent_layout.addLayout(info_layout)
+    
+    def _on_refresh_clicked(self):
+        """Handle refresh button click with logging."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("[UI] Refresh button clicked")
+        self.refresh_requested.emit()
     
     def _create_documents_area(self, parent_layout: QVBoxLayout) -> None:
         """Create the scrollable documents area."""

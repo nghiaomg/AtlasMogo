@@ -83,13 +83,13 @@ class Sidebar(QObject):
         action_layout = QHBoxLayout()
         action_layout.setSpacing(8)
         
-        # Refresh button - modern flat style
-        refresh_button = QPushButton(fa.icon('fa6s.arrows-rotate'), " Refresh")
+        # Refresh button - modern flat style with better contrast
+        refresh_button = QPushButton(fa.icon('fa6s.arrows-rotate', color='#6b7280'), " Refresh")
         refresh_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         refresh_button.setMinimumHeight(24)
         refresh_button.setMinimumWidth(70)
-        refresh_button.clicked.connect(self.refresh_requested.emit)
-        refresh_button.setStyleSheet(BUTTON_STYLES['flat_neutral'])
+        refresh_button.clicked.connect(self._on_refresh_clicked)
+        refresh_button.setStyleSheet(BUTTON_STYLES['refresh_secondary'])  # Use secondary refresh style
         
         # Add database button - modern flat style with accent
         add_db_button = QPushButton(fa.icon('fa6s.plus'), " Add DB")
@@ -104,6 +104,13 @@ class Sidebar(QObject):
         action_layout.addStretch()
         
         parent_layout.addLayout(action_layout)
+    
+    def _on_refresh_clicked(self):
+        """Handle refresh button click with logging."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("[UI] Refresh button clicked")
+        self.refresh_requested.emit()
     
     def _create_database_tree(self, parent_layout: QVBoxLayout) -> None:
         """Create the tree widget for databases and collections."""
@@ -294,8 +301,16 @@ class Sidebar(QObject):
         if not self.db_tree:
             return
         
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Clean the database name (remove leading/trailing spaces)
         clean_db_name = database_name.strip()
+        
+        # Check if database already exists
+        if self.database_exists(clean_db_name):
+            logger.debug(f"Database '{clean_db_name}' already exists in sidebar, skipping duplicate")
+            return
         
         # Create database item with icon
         db_item = QTreeWidgetItem(self.db_tree, [f"  {clean_db_name}"])
@@ -319,6 +334,111 @@ class Sidebar(QObject):
             # Add collection count to database item
             if collection_count > 0:
                 db_item.setText(0, f"  {clean_db_name} ({collection_count} collections)")
+        
+        logger.debug(f"Added database '{clean_db_name}' to sidebar with {len(collections) if collections else 0} collections")
+    
+    def add_single_database(self, database_name: str, collections: list[str] | None = None) -> bool:
+        """Add a single database to the sidebar without clearing the tree."""
+        if not self.db_tree:
+            return False
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Clean the database name (remove leading/trailing spaces)
+        clean_db_name = database_name.strip()
+        
+        # Check if database already exists
+        if self.database_exists(clean_db_name):
+            logger.debug(f"Database '{clean_db_name}' already exists in sidebar, skipping duplicate")
+            return False
+        
+        try:
+            # Create database item with icon
+            db_item = QTreeWidgetItem(self.db_tree, [f"  {clean_db_name}"])
+            db_item.setIcon(0, fa.icon('fa6s.database'))
+            db_item.setData(0, Qt.UserRole, {"type": "database", "name": clean_db_name})
+            
+            # Add collections if provided
+            if collections:
+                collection_count = len(collections)
+                for coll_name in collections:
+                    # Clean the collection name (remove leading/trailing spaces)
+                    clean_coll_name = coll_name.strip()
+                    coll_item = QTreeWidgetItem(db_item, [f"  {clean_coll_name}"])
+                    coll_item.setIcon(0, fa.icon('fa6s.folder'))
+                    coll_item.setData(0, Qt.UserRole, {
+                        "type": "collection", 
+                        "name": clean_coll_name, 
+                        "database": clean_db_name
+                    })
+                
+                # Add collection count to database item
+                if collection_count > 0:
+                    db_item.setText(0, f"  {clean_db_name} ({collection_count} collections)")
+            
+            # Expand the new database item
+            db_item.setExpanded(True)
+            
+            # Update database count
+            current_count = self.db_tree.topLevelItemCount()
+            self.update_database_count(current_count)
+            
+            logger.info(f"Added single database '{clean_db_name}' to sidebar with {len(collections) if collections else 0} collections")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error adding single database '{clean_db_name}' to sidebar: {e}")
+            return False
+    
+    def database_exists(self, database_name: str) -> bool:
+        """Check if a database already exists in the sidebar."""
+        if not self.db_tree:
+            return False
+        
+        try:
+            # Find the database item
+            for i in range(self.db_tree.topLevelItemCount()):
+                db_item = self.db_tree.topLevelItem(i)
+                db_data = db_item.data(0, Qt.UserRole)
+                
+                if db_data and db_data.get("name") == database_name:
+                    return True
+            
+            return False
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking if database {database_name} exists: {e}")
+            return False
+    
+    def select_database(self, database_name: str) -> bool:
+        """Select a specific database in the tree."""
+        if not self.db_tree:
+            return False
+        
+        try:
+            # Find the database item
+            for i in range(self.db_tree.topLevelItemCount()):
+                db_item = self.db_tree.topLevelItem(i)
+                db_data = db_item.data(0, Qt.UserRole)
+                
+                if db_data and db_data.get("name") == database_name:
+                    # Select the database item
+                    self.db_tree.setCurrentItem(db_item)
+                    self.db_tree.scrollToItem(db_item)
+                    
+                    # Update the selected database label
+                    self.update_selected_database(database_name)
+                    
+                    return True
+            
+            return False
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error selecting database {database_name}: {e}")
+            return False
     
     def update_database_count(self, count: int) -> None:
         """Update the database count label."""

@@ -3,12 +3,13 @@ MongoDB Repository
 Handles all CRUD operations and database/collection management.
 """
 
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Tuple
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.collection import Collection
 from pymongo.errors import PyMongoError
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +93,18 @@ class MongoRepository:
             return {}
     
     def find_documents(self, database_name: str, collection_name: str, 
-                      query: Dict[str, Any] = None, limit: int = 100) -> List[Dict[str, Any]]:
+                      query: Dict[str, Any] = None, limit: int = 100, 
+                      skip: int = 0, sort: List[Tuple[str, int]] = None) -> List[Dict[str, Any]]:
         """
-        Find documents in a collection.
+        Find documents in a collection with pagination support.
         
         Args:
             database_name: Name of the database
             collection_name: Name of the collection
             query: MongoDB query filter
             limit: Maximum number of documents to return
+            skip: Number of documents to skip (for pagination)
+            sort: List of (field, direction) tuples for sorting (1=asc, -1=desc)
             
         Returns:
             List of documents
@@ -112,8 +116,23 @@ class MongoRepository:
             if query is None:
                 query = {}
             
-            cursor = collection.find(query).limit(limit)
-            return list(cursor)
+            cursor = collection.find(query)
+            
+            # Apply sorting if specified
+            if sort:
+                cursor = cursor.sort(sort)
+            
+            # Apply pagination
+            if skip > 0:
+                cursor = cursor.skip(skip)
+            
+            cursor = cursor.limit(limit)
+            
+            documents = list(cursor)
+            logger.debug(f"Retrieved {len(documents)} documents from {collection_name} "
+                        f"(skip: {skip}, limit: {limit})")
+            
+            return documents
         except PyMongoError as e:
             logger.error(f"Error finding documents in {collection_name}: {e}")
             return []
@@ -121,7 +140,7 @@ class MongoRepository:
     def count_documents(self, database_name: str, collection_name: str, 
                        query: Dict[str, Any] = None) -> int:
         """
-        Count documents in a collection.
+        Count documents in a collection efficiently.
         
         Args:
             database_name: Name of the database
@@ -138,10 +157,34 @@ class MongoRepository:
             if query is None:
                 query = {}
             
-            return collection.count_documents(query)
+            count = collection.count_documents(query)
+            logger.debug(f"Collection {collection_name} has {count} documents")
+            return count
         except PyMongoError as e:
             logger.error(f"Error counting documents in {collection_name}: {e}")
             return 0
+    
+    def get_collection_stats(self, database_name: str, collection_name: str) -> Dict[str, Any]:
+        """
+        Get collection statistics including document count and storage info.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            
+        Returns:
+            Collection statistics
+        """
+        try:
+            db = self._client[database_name]
+            collection = db[collection_name]
+            
+            stats = db.command("collStats", collection_name)
+            logger.debug(f"Retrieved stats for collection {collection_name}")
+            return stats
+        except PyMongoError as e:
+            logger.error(f"Error getting stats for {collection_name}: {e}")
+            return {}
     
     def insert_document(self, database_name: str, collection_name: str, 
                        document: Dict[str, Any]) -> Optional[str]:
@@ -366,12 +409,21 @@ class MongoRepository:
         """
         try:
             # MongoDB creates databases when you first insert data
-            # We'll create a temporary collection and then drop it
+            # We'll create a persistent collection to ensure the database remains visible
             db = self._client[database_name]
-            temp_collection = db["__temp__"]
-            temp_collection.insert_one({"created": True})
-            temp_collection.drop()
-            logger.info(f"Database {database_name} created successfully")
+            
+            # Create a persistent collection with a document to ensure database visibility
+            init_collection = db["__init__"]
+            init_collection.insert_one({
+                "created_at": datetime.datetime.utcnow(),
+                "purpose": "Database initialization",
+                "note": "This collection ensures the database remains visible in MongoDB"
+            })
+            
+            # Create an index on the created_at field for better performance
+            init_collection.create_index("created_at")
+            
+            logger.info(f"Database {database_name} created successfully with initialization collection")
             return True
         except PyMongoError as e:
             logger.error(f"Error creating database {database_name}: {e}")

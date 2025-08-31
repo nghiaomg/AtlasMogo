@@ -22,18 +22,22 @@ from ..panels.sidebar import Sidebar
 from ..panels.document_view_manager import DocumentViewManager
 from ..panels.operations_panel import OperationsPanel
 from ..panels.query_panel import QueryPanel
+from ..panels.advanced_filter_panel import AdvancedFilterPanel
 from ..panels.status_bar import StatusBar
 
 # Import dialogs
-from ..dialogs.dialogs import (
-    CreateDatabaseDialog, CreateCollectionDialog, InsertDocumentDialog,
-    QueryBuilderDialog, SettingsDialog, ExportDataDialog
+from ..dialogs import (
+    ConnectionDialog, CreateDatabaseDialog, CreateCollectionDialog, InsertDocumentDialog,
+    EditDocumentDialog, ConfirmationDialog, RenameDialog, QueryBuilderDialog,
+    SettingsDialog, ExportDataDialog, DocumentViewerDialog
 )
 
 # Import helpers
 from ..dialogs.message_box_helper import MessageBoxHelper
 
+# Import business layer
 from business.mongo_service import MongoService
+from business.schema_analyzer import SchemaAnalyzer
 
 
 class ConnectionWorker(QThread):
@@ -197,13 +201,17 @@ class MainWindow(QMainWindow):
         self.document_view_manager = DocumentViewManager(self)
         self.tab_widget.addTab(self.document_view_manager.get_widget(), "Documents")
         
-        # Operations tab
-        self.operations_panel = OperationsPanel(self)
-        self.tab_widget.addTab(self.operations_panel.get_widget(), "Operations")
-        
-        # Query tab
+        # Create query panel
         self.query_panel = QueryPanel(self)
         self.tab_widget.addTab(self.query_panel.get_widget(), "Query")
+        
+        # Create advanced filter panel
+        self.advanced_filter_panel = AdvancedFilterPanel(self)
+        self.tab_widget.addTab(self.advanced_filter_panel.get_widget(), "Advanced Filter")
+        
+        # Create operations panel
+        self.operations_panel = OperationsPanel(self)
+        self.tab_widget.addTab(self.operations_panel.get_widget(), "Operations")
         
         self.main_splitter.addWidget(self.tab_widget)
     
@@ -241,6 +249,14 @@ class MainWindow(QMainWindow):
         
         # Query panel signals
         self.query_panel.query_executed.connect(self.execute_query)
+        
+        # Connect advanced filter panel signals
+        self.advanced_filter_panel.filter_applied.connect(self.execute_advanced_filter)
+        self.advanced_filter_panel.filter_reset.connect(self.reset_advanced_filter)
+        
+        # Connect operations panel signals
+        self.operations_panel.update_requested.connect(self.update_document)
+        self.operations_panel.delete_requested.connect(self.delete_document)
         
         # Menu bar signals
         self._connect_menu_actions()
@@ -293,6 +309,17 @@ class MainWindow(QMainWindow):
         self.connection_panel.set_connection_state("connecting")
         self.status_bar_component.show_progress(True)
         self.status_bar_component.set_indeterminate_progress(True)
+        
+        # Initialize MongoDB service
+        # Note: MongoService is already initialized in __init__, no need to recreate it
+        
+        # Initialize schema analyzer
+        self._initialize_schema_analyzer()
+        
+        # Connect sidebar signals
+        self.sidebar.database_selected.connect(self.on_database_selected)
+        self.sidebar.collection_selected.connect(self._on_collection_selected)
+        self.sidebar.add_database_requested.connect(self.on_add_database)
         
         # Create worker thread
         self.connection_worker = ConnectionWorker(self.mongo_service, connection_string)
@@ -408,6 +435,9 @@ class MainWindow(QMainWindow):
             MessageBoxHelper.warning(self, "Not Connected", "Please connect to MongoDB first.")
             return
         
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Show loading state
         self.sidebar.set_loading_state(True)
         
@@ -419,6 +449,8 @@ class MainWindow(QMainWindow):
             databases = self.mongo_service.get_databases()
             user_databases = [db for db in databases if db not in ['admin', 'local', 'config']]
             
+            logger.info(f"Refreshing databases - Total found: {len(databases)}, User databases: {len(user_databases)}")
+            
             # Update database count
             self.sidebar.update_database_count(len(user_databases))
             
@@ -427,8 +459,10 @@ class MainWindow(QMainWindow):
                 try:
                     collections = self.mongo_service.get_collections(db_name)
                     self.sidebar.add_database(db_name, collections)
+                    logger.debug(f"Added database '{db_name}' with {len(collections)} collections to sidebar")
                 except Exception as e:
                     # Handle collection loading errors
+                    logger.warning(f"Error loading collections for database '{db_name}': {e}")
                     self.sidebar.add_database(db_name, [])
             
             # Expand all items
@@ -442,15 +476,38 @@ class MainWindow(QMainWindow):
             if len(user_databases) == 0:
                 self.status_bar_component.show_message("No user databases found. System databases (admin, local, config) are hidden.", 5000)
             
+            logger.info(f"Sidebar refresh completed - {len(user_databases)} databases loaded successfully")
+            
         except Exception as e:
             # Handle database loading errors
             error_msg = f"Failed to load databases: {str(e)}"
+            logger.error(f"Database refresh failed: {e}")
             self.sidebar.set_error_state(str(e))
             MessageBoxHelper.critical(self, "Database Error", error_msg)
             self.status_bar_component.show_message(f"Failed to refresh databases: {str(e)}", 5000)
         
         finally:
             self.sidebar.set_loading_state(False)
+    
+    def auto_select_new_database(self, database_name: str):
+        """Auto-select a newly created database in the sidebar."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Find the database item in the sidebar
+            success = self.sidebar.select_database(database_name)
+            if success:
+                logger.info(f"Auto-selected newly created database '{database_name}' in sidebar")
+                # Update current database selection
+                self.current_database = database_name
+                self.current_collection = ""
+                # Update UI to reflect selection
+                self.on_database_selected(database_name)
+            else:
+                logger.warning(f"Could not auto-select database '{database_name}' in sidebar")
+        except Exception as e:
+            logger.error(f"Error auto-selecting database '{database_name}': {e}")
     
     def select_collection_in_sidebar(self, database_name: str, collection_name: str):
         """Select a specific collection in the sidebar after refresh."""
@@ -672,6 +729,158 @@ class MainWindow(QMainWindow):
             self.query_panel.set_query_results(formatted_results)
         else:
             self.query_panel.set_query_results("No documents found.")
+    
+    def execute_advanced_filter(self, filter_json: str, limit: int):
+        """Execute an advanced filter and update the data table."""
+        if not self.current_database or not self.current_collection:
+            MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
+            return
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Handle empty or default filters
+        if not filter_json or filter_json.strip() == "" or filter_json == "{}":
+            logger.info("Executing advanced filter: {} (no filters) with limit {}", filter_json, limit)
+            # Show all documents when no filter is applied
+            self.refresh_documents()
+            return
+        
+        logger.info(f"Executing advanced filter: {filter_json} with limit {limit}")
+        
+        try:
+            # Execute the filter
+            documents = self.mongo_service.find_documents(
+                self.current_database,
+                self.current_collection,
+                filter_json,
+                limit
+            )
+            
+            if documents:
+                # Update the data table with filtered results
+                self.document_view_manager.populate_documents(documents)
+                
+                # Update collection info
+                self.document_view_manager.set_collection_info(
+                    self.current_collection, 
+                    len(documents)
+                )
+                
+                # Show success message
+                self.status_bar_component.show_message(
+                    f"Filter applied: {len(documents)} documents found", 
+                    3000
+                )
+                
+                logger.info(f"Advanced filter executed successfully: {len(documents)} documents found")
+            else:
+                # Show no results
+                self.document_view_manager.populate_documents([])
+                self.document_view_manager.set_collection_info(self.current_collection, 0)
+                
+                self.status_bar_component.show_message(
+                    "Filter applied: No documents found", 
+                    3000
+                )
+                
+                logger.info("Advanced filter executed: No documents found")
+                
+        except Exception as e:
+            logger.error(f"Error executing advanced filter: {e}")
+            MessageBoxHelper.critical(self, "Error", f"Failed to execute filter: {str(e)}")
+    
+    def reset_advanced_filter(self):
+        """Reset the advanced filter and reload all documents."""
+        if not self.current_database or not self.current_collection:
+            return
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Resetting advanced filter")
+        
+        # Reload all documents
+        self.refresh_documents()
+        
+        # Show reset message
+        self.status_bar_component.show_message("Filter reset: Showing all documents", 3000)
+    
+    def _initialize_schema_analyzer(self):
+        """Initialize the schema analyzer service."""
+        if self.mongo_service:
+            self.schema_analyzer = SchemaAnalyzer(self.mongo_service)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("Schema analyzer initialized")
+    
+    def _update_filter_panel_schema(self, database_name: str, collection_name: str):
+        """Update the filter panel with schema information for the selected collection."""
+        if not self.schema_analyzer or not self.advanced_filter_panel:
+            return
+        
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Updating filter panel schema for {database_name}.{collection_name}")
+            
+            # Get field names for autocomplete
+            field_names = self.schema_analyzer.get_field_names(database_name, collection_name)
+            self.advanced_filter_panel.set_available_fields(field_names)
+            
+            # Get field values cache for suggestions
+            field_values = {}
+            for field_name in field_names[:20]:  # Limit to first 20 fields for performance
+                values = self.schema_analyzer.get_field_values(database_name, collection_name, field_name)
+                if values:
+                    field_values[field_name] = values
+            
+            self.advanced_filter_panel.set_field_values_cache(field_values)
+            
+            logger.info(f"Filter panel updated with {len(field_names)} fields and {len(field_values)} value suggestions")
+            
+        except Exception as e:
+            logger.error(f"Error updating filter panel schema: {e}")
+    
+    def _on_collection_selected(self, database_name: str, collection_name: str):
+        """Handle collection selection and update related components."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        self.current_database = database_name
+        self.current_collection = collection_name
+        
+        logger.info(f"Collection selected: {database_name}.{collection_name}")
+        
+        # Update status bar
+        self.status_bar_component.show_message(
+            f"Selected: {database_name} > {collection_name}", 
+            3000
+        )
+        
+        # Load collection documents
+        self.refresh_documents()
+        
+        # Update filter panel schema
+        self._update_filter_panel_schema(database_name, collection_name)
+        
+        # Update operations panel placeholders
+        if self.operations_panel:
+            self.operations_panel.set_update_filter_placeholder(f'{{"_id": "document_id"}}')
+            self.operations_panel.set_delete_filter_placeholder(f'{{"_id": "document_id"}}')
+        
+        # Update query panel placeholder
+        if self.query_panel:
+            self.query_panel.set_query_placeholder(f'{{"field": "value"}}')
+        
+        # Enable operations
+        if self.operations_panel:
+            self.operations_panel.enable_operations(True)
+        
+        if self.query_panel:
+            self.query_panel.enable_query_execution(True)
+        
+        if self.advanced_filter_panel:
+            self.advanced_filter_panel.enable_filtering(True)
     
     def on_resize_event(self, event):
         """Handle window resize events for responsive layout."""
@@ -936,18 +1145,45 @@ class MainWindow(QMainWindow):
             MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
-        from PySide6.QtWidgets import QInputDialog
-        db_name, ok = QInputDialog.getText(
-            self, "Create Database", "Enter database name:"
-        )
+        import logging
+        logger = logging.getLogger(__name__)
         
-        if ok and db_name.strip():
-            success, message = self.mongo_service.create_database(db_name.strip())
-            if success:
-                MessageBoxHelper.information(self, "Success", message)
-                self.refresh_databases()
-            else:
-                MessageBoxHelper.critical(self, "Error", message)
+        # Show create database dialog (same as sidebar)
+        dialog = CreateDatabaseDialog(self)
+        if dialog.exec() == QDialog.Accepted:
+            database_name = dialog.get_database_name()
+            
+            if database_name:
+                logger.info(f"Creating new database via menu/toolbar: '{database_name}'")
+                
+                # Create the database
+                success, message = self.mongo_service.create_database(database_name)
+                
+                if success:
+                    logger.info(f"Database '{database_name}' created successfully via menu/toolbar")
+                    MessageBoxHelper.information(self, "Success", message)
+                    
+                    # Add the new database to the sidebar efficiently
+                    collections = self.mongo_service.get_collections(database_name)
+                    sidebar_success = self.sidebar.add_single_database(database_name, collections)
+                    
+                    if sidebar_success:
+                        logger.info(f"Database '{database_name}' added to sidebar successfully via menu/toolbar")
+                        # Auto-select the newly created database
+                        self.auto_select_new_database(database_name)
+                        
+                        # Update status
+                        status_msg = f"Database '{database_name}' created and added to sidebar"
+                        self.status_bar_component.show_message(status_msg, 5000)
+                    else:
+                        logger.warning(f"Failed to add database '{database_name}' to sidebar via menu/toolbar, falling back to full refresh")
+                        # Fallback to full refresh if single add fails
+                        self.refresh_databases()
+                        self.auto_select_new_database(database_name)
+                    
+                else:
+                    logger.error(f"Failed to create database '{database_name}' via menu/toolbar: {message}")
+                    MessageBoxHelper.critical(self, "Error", message)
     
     def on_list_databases(self):
         """Handle list databases menu/toolbar action."""
@@ -1036,20 +1272,44 @@ class MainWindow(QMainWindow):
             MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
             return
         
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Show create database dialog
         dialog = CreateDatabaseDialog(self)
         if dialog.exec() == QDialog.Accepted:
             database_name = dialog.get_database_name()
             
             if database_name:
+                logger.info(f"Creating new database: '{database_name}'")
+                
                 # Create the database
                 success, message = self.mongo_service.create_database(database_name)
                 
                 if success:
+                    logger.info(f"Database '{database_name}' created successfully")
                     MessageBoxHelper.information(self, "Success", message)
-                    # Refresh the database list to show the new database
-                    self.refresh_databases()
+                    
+                    # Add the new database to the sidebar efficiently
+                    collections = self.mongo_service.get_collections(database_name)
+                    sidebar_success = self.sidebar.add_single_database(database_name, collections)
+                    
+                    if sidebar_success:
+                        logger.info(f"Database '{database_name}' added to sidebar successfully")
+                        # Auto-select the newly created database
+                        self.auto_select_new_database(database_name)
+                        
+                        # Update status
+                        status_msg = f"Database '{database_name}' created and added to sidebar"
+                        self.status_bar_component.show_message(status_msg, 5000)
+                    else:
+                        logger.warning(f"Failed to add database '{database_name}' to sidebar, falling back to full refresh")
+                        # Fallback to full refresh if single add fails
+                        self.refresh_databases()
+                        self.auto_select_new_database(database_name)
+                    
                 else:
+                    logger.error(f"Failed to create database '{database_name}': {message}")
                     MessageBoxHelper.critical(self, "Error", message)
     
     def on_add_collection(self):

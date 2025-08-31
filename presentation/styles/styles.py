@@ -488,6 +488,146 @@ BUTTON_STYLES = {
              background-color: #E0E0E0;
              color: #9CA3AF;
          }}
+     """,
+     
+     # Refresh button styles - Primary action with proper contrast
+     'refresh_primary': f"""
+         QPushButton {{
+             background-color: {COLORS['primary']};
+             color: {COLORS['text_inverse']};
+             border: none;
+             border-radius: 6px;
+             padding: 8px 16px;
+             font-size: 12px;
+             font-weight: 500;
+             min-height: 28px;
+             min-width: 120px;
+         }}
+         QPushButton:hover {{
+             background-color: {COLORS['primary_hover']};
+         }}
+         QPushButton:pressed {{
+             background-color: {COLORS['primary_hover']};
+         }}
+         QPushButton:disabled {{
+             background-color: {COLORS['gray']};
+             color: {COLORS['text_muted']};
+         }}
+     """,
+     
+     # Refresh button styles - Secondary/utility style
+     'refresh_secondary': f"""
+         QPushButton {{
+             background-color: transparent;
+             color: {COLORS['text_secondary']};
+             border: 1px solid {COLORS['border_medium']};
+             border-radius: 6px;
+             padding: 8px 16px;
+             font-size: 12px;
+             font-weight: 500;
+             min-height: 28px;
+             min-width: 120px;
+         }}
+         QPushButton:hover {{
+             background-color: {COLORS['bg_tertiary']};
+             color: {COLORS['text_primary']};
+             border-color: {COLORS['border_dark']};
+         }}
+         QPushButton:pressed {{
+             background-color: {COLORS['border_light']};
+             color: {COLORS['text_primary']};
+         }}
+         QPushButton:disabled {{
+             background-color: {COLORS['bg_secondary']};
+             color: {COLORS['text_muted']};
+             border-color: {COLORS['border_light']};
+         }}
+     """,
+     
+     # Icon-only refresh button style
+     'refresh_icon_only': f"""
+         QPushButton {{
+             background-color: transparent;
+             color: {COLORS['text_secondary']};
+             border: 1px solid {COLORS['border_light']};
+             border-radius: 50%;
+             padding: 8px;
+             font-size: 12px;
+             min-height: 32px;
+             min-width: 32px;
+         }}
+         QPushButton:hover {{
+             background-color: {COLORS['bg_tertiary']};
+             color: {COLORS['text_primary']};
+             border-color: {COLORS['border_medium']};
+         }}
+         QPushButton:pressed {{
+             background-color: {COLORS['border_light']};
+             color: {COLORS['text_primary']};
+         }}
+         QPushButton:disabled {{
+             background-color: {COLORS['bg_secondary']};
+             color: {COLORS['text_muted']};
+             border-color: {COLORS['border_light']};
+         }}
+     """,
+     
+     # Pagination button styles - Compact, lightweight navigation
+     'pagination_nav': f"""
+         QPushButton {{
+             background-color: transparent;
+             color: {COLORS['text_secondary']};
+             border: 1px solid {COLORS['border_light']};
+             border-radius: 4px;
+             padding: 6px 8px;
+             font-size: 11px;
+             font-weight: 500;
+             min-height: 24px;
+             min-width: 28px;
+             margin: 0 2px;
+         }}
+         QPushButton:hover {{
+             background-color: {COLORS['bg_tertiary']};
+             color: {COLORS['text_primary']};
+             border-color: {COLORS['border_medium']};
+         }}
+         QPushButton:pressed {{
+             background-color: {COLORS['border_light']};
+             color: {COLORS['text_primary']};
+         }}
+         QPushButton:disabled {{
+             background-color: {COLORS['bg_secondary']};
+             color: {COLORS['text_muted']};
+             border-color: {COLORS['border_light']};
+         }}
+     """,
+     
+     # Pagination control styles - For page size and go-to inputs
+     'pagination_control': f"""
+         QSpinBox, QComboBox {{
+             border: 1px solid {COLORS['border_light']};
+             border-radius: 4px;
+             padding: 4px 6px;
+             background-color: white;
+             min-width: 60px;
+             font-size: 11px;
+         }}
+         QSpinBox:focus, QComboBox:focus {{
+             border-color: {COLORS['primary']};
+             outline: none;
+         }}
+         QSpinBox:disabled, QComboBox:disabled {{
+             background-color: {COLORS['bg_secondary']};
+             color: {COLORS['text_muted']};
+             border-color: {COLORS['border_light']};
+         }}
+         QComboBox::drop-down {{
+             border: none;
+             width: 16px;
+         }}
+         QComboBox::down-arrow {{
+             image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgNEw2IDdMOSA0SDNaIiBmaWxsPSIjNmI3MjgwIi8+Cjwvc3ZnPgo=);
+         }}
      """
 }
 

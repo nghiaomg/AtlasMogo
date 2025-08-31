@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from .data_table import DataTable
 from .object_view import ObjectView
 from ..styles.styles import COLORS, BUTTON_STYLES
+from business.pagination_manager import PaginationManager
 
 
 class DocumentViewManager(QObject):
@@ -45,6 +46,15 @@ class DocumentViewManager(QObject):
         self.table_view_btn: QPushButton | None = None
         self.object_view_btn: QPushButton | None = None
         self.doc_count_label: QLabel | None = None
+        
+        # Pagination and caching
+        self.pagination_manager = PaginationManager(default_page_size=50, max_cache_size=10)
+        self.current_page = 1
+        self.current_page_size = 50
+        self.total_documents = 0
+        self.current_query = ""
+        self.current_sort = None
+        
         self._create_view_manager()
     
     def _create_view_manager(self) -> None:
@@ -197,6 +207,10 @@ class DocumentViewManager(QObject):
         self.data_table.edit_document_requested.connect(self.edit_document_requested.emit)
         self.data_table.delete_document_requested.connect(self.delete_document_requested.emit)
         
+        # Pagination signals
+        self.data_table.page_changed.connect(self._on_page_changed)
+        self.data_table.page_size_changed.connect(self._on_page_size_changed)
+        
         # Object view signals
         self.object_view.document_selected.connect(self.document_selected.emit)
         self.object_view.refresh_requested.connect(self.refresh_requested.emit)
@@ -206,13 +220,31 @@ class DocumentViewManager(QObject):
     
     def _on_table_view_clicked(self) -> None:
         """Handle table view button click."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Always activate table view when clicked
         if self.current_view != "table":
+            logger.info("Table View activated")
             self._switch_view("table")
+        else:
+            # Ensure table view remains active even if clicked again
+            logger.info("Table View clicked (already active)")
+            self._ensure_correct_button_states()
     
     def _on_object_view_clicked(self) -> None:
         """Handle object view button click."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Always activate object view when clicked
         if self.current_view != "object":
+            logger.info("Object View activated")
             self._switch_view("object")
+        else:
+            # Ensure object view remains active even if clicked again
+            logger.info("Object View clicked (already active)")
+            self._ensure_correct_button_states()
     
     def _switch_view(self, view_type: str) -> None:
         """Switch between table and object views."""
@@ -220,6 +252,7 @@ class DocumentViewManager(QObject):
         logger = logging.getLogger(__name__)
         
         if view_type == self.current_view:
+            logger.debug(f"Already in {view_type} view, no switch needed")
             return
         
         logger.info(f"Switching from {self.current_view} view to {view_type} view")
@@ -232,10 +265,12 @@ class DocumentViewManager(QObject):
             self.table_view_btn.setChecked(True)
             self.object_view_btn.setChecked(False)
             self.stacked_widget.setCurrentIndex(0)
+            logger.info("Table View activated - showing table content")
         else:
             self.table_view_btn.setChecked(False)
             self.object_view_btn.setChecked(True)
             self.stacked_widget.setCurrentIndex(1)
+            logger.info("Object View activated - showing JSON content")
         
         # Synchronize data between views
         self._synchronize_views()
@@ -245,6 +280,9 @@ class DocumentViewManager(QObject):
     
     def _ensure_correct_button_states(self) -> None:
         """Ensure only one button is checked at a time."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Block signals temporarily to prevent recursive calls
         self.table_view_btn.blockSignals(True)
         self.object_view_btn.blockSignals(True)
@@ -253,9 +291,11 @@ class DocumentViewManager(QObject):
             if self.current_view == "table":
                 self.table_view_btn.setChecked(True)
                 self.object_view_btn.setChecked(False)
+                logger.debug("Button states synchronized: Table View active, Object View inactive")
             else:
                 self.table_view_btn.setChecked(False)
                 self.object_view_btn.setChecked(True)
+                logger.debug("Button states synchronized: Object View active, Table View inactive")
             
             # Update icon colors based on button states
             self._update_button_icons()
@@ -294,6 +334,55 @@ class DocumentViewManager(QObject):
         """Get the current view type."""
         return self.current_view
     
+    def force_view(self, view_type: str) -> None:
+        """Force a specific view to be active (for debugging and consistency)."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if view_type not in ["table", "object"]:
+            logger.warning(f"Invalid view type: {view_type}. Must be 'table' or 'object'")
+            return
+        
+        logger.info(f"Force activating {view_type} view")
+        self._switch_view(view_type)
+    
+    def _on_page_changed(self, page_number: int) -> None:
+        """Handle page change from data table."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if page_number != self.current_page:
+            logger.info(f"[PAGINATION] Page changed to {page_number}")
+            self.current_page = page_number
+            self._load_current_page()
+    
+    def _on_page_size_changed(self, page_size: int) -> None:
+        """Handle page size change from data table."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if page_size != self.current_page_size:
+            logger.info(f"[PAGINATION] Page size changed to {page_size}")
+            self.current_page_size = page_size
+            self.current_page = 1  # Reset to first page
+            self.pagination_manager.clear_cache_for_query(self.current_query, self.current_sort)
+            self._load_current_page()
+    
+    def get_view_status(self) -> dict:
+        """Get the current view status for debugging purposes."""
+        return {
+            "current_view": self.current_view,
+            "table_button_checked": self.table_view_btn.isChecked() if self.table_view_btn else False,
+            "object_button_checked": self.object_view_btn.isChecked() if self.object_view_btn else False,
+            "stacked_widget_index": self.stacked_widget.currentIndex() if self.stacked_widget else -1,
+            "pagination": {
+                "current_page": self.current_page,
+                "page_size": self.current_page_size,
+                "total_documents": self.total_documents,
+                "total_pages": self.pagination_manager.get_page_info(self.current_page, self.total_documents, self.current_page_size).total_pages
+            }
+        }
+    
     def get_data_table(self) -> DataTable | None:
         """Get the data table component."""
         return self.data_table
@@ -301,6 +390,67 @@ class DocumentViewManager(QObject):
     def get_object_view(self) -> ObjectView | None:
         """Get the object view component."""
         return self.object_view
+    
+    def get_pagination_stats(self) -> dict:
+        """Get pagination and cache statistics."""
+        cache_stats = self.pagination_manager.get_cache_stats()
+        memory_stats = self.pagination_manager.get_memory_usage_estimate()
+        
+        return {
+            "current_page": self.current_page,
+            "page_size": self.current_page_size,
+            "total_documents": self.total_documents,
+            "total_pages": self.pagination_manager.get_page_info(self.current_page, self.total_documents, self.current_page_size).total_pages,
+            "cache_stats": cache_stats,
+            "memory_usage": memory_stats
+        }
+    
+    def _load_current_page(self) -> None:
+        """Load the current page of documents."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not self.current_collection_name:
+            logger.warning("[PAGINATION] No collection selected, cannot load page")
+            return
+        
+        # Check if page is cached
+        cached_documents = self.pagination_manager.get_cached_page(self.current_page)
+        if cached_documents:
+            logger.info(f"[PAGINATION] Using cached page {self.current_page}")
+            self._populate_current_view(cached_documents)
+            return
+        
+        # Page not cached, need to load from database
+        logger.info(f"[PAGINATION] Loading page {self.current_page} from database")
+        self._request_page_from_database()
+    
+    def _request_page_from_database(self) -> None:
+        """Request a page of documents from the database."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # This method will be called by the main window when it has access to mongo_service
+        # For now, we'll emit a signal to request the page
+        logger.info(f"[PAGINATION] Requesting page {self.current_page} (size: {self.current_page_size})")
+        # TODO: Implement database request logic in main window
+    
+    def _populate_current_view(self, documents: List[Dict[str, Any]]) -> None:
+        """Populate the current view with documents."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        self.current_documents = documents
+        
+        logger.debug(f"Populating {self.current_view} view with {len(documents)} documents")
+        
+        if self.current_view == "table":
+            self.data_table.populate_documents(documents)
+            # Update pagination info in data table
+            page_info = self.pagination_manager.get_page_info(self.current_page, self.total_documents, self.current_page_size)
+            self.data_table.set_pagination_info(page_info.page_number, page_info.total_pages, page_info.limit)
+        else:
+            self.object_view.populate_documents(documents)
     
     def set_collection_info(self, collection_name: str, document_count: int) -> None:
         """Set collection information in both views."""
@@ -312,20 +462,50 @@ class DocumentViewManager(QObject):
         
         # Update document count in selector
         self.doc_count_label.setText(f"Documents: {document_count}")
+        
+        # Update pagination information
+        self.total_documents = document_count
+        self.current_page = 1  # Reset to first page when collection changes
+        
+        # Clear cache for new collection
+        self.pagination_manager.clear_cache()
+        
+        # Load first page
+        self._load_current_page()
     
-    def populate_documents(self, documents: list[dict[str, Any]]) -> None:
-        """Populate documents in the current view."""
+    def populate_documents(self, documents: list[dict[str, Any]], page_number: int = 1) -> None:
+        """Populate documents in the current view with pagination support."""
         import logging
         logger = logging.getLogger(__name__)
         
         self.current_documents = documents if documents else []
         
-        logger.debug(f"Populating {self.current_view} view with {len(self.current_documents)} documents")
+        logger.debug(f"Populating {self.current_view} view with {len(self.current_documents)} documents (page {page_number})")
+        
+        # Cache the page if it's not already cached
+        if documents and page_number > 0:
+            self.pagination_manager.cache_page(page_number, documents)
         
         if self.current_view == "table":
             self.data_table.populate_documents(documents)
+            # Update pagination info
+            page_info = self.pagination_manager.get_page_info(page_number, self.total_documents, self.current_page_size)
+            self.data_table.set_pagination_info(page_info.page_number, page_info.total_pages, page_info.limit)
         else:
             self.object_view.populate_documents(documents)
+    
+    def load_page(self, page_number: int, documents: list[dict[str, Any]]) -> None:
+        """Load a specific page of documents."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if page_number != self.current_page:
+            logger.info(f"[PAGINATION] Loading page {page_number} with {len(documents)} documents")
+            self.current_page = page_number
+            self.populate_documents(documents, page_number)
+        else:
+            logger.debug(f"[PAGINATION] Page {page_number} already loaded")
+            self.populate_documents(documents, page_number)
     
     def get_selected_document(self) -> dict[str, Any] | None:
         """Get the currently selected document from the active view."""
