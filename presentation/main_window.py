@@ -410,6 +410,25 @@ class MainWindow(QMainWindow):
         finally:
             self.sidebar.set_loading_state(False)
     
+    def select_collection_in_sidebar(self, database_name: str, collection_name: str):
+        """Select a specific collection in the sidebar after refresh."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Find and select the collection in the sidebar
+            success = self.sidebar.select_collection(database_name, collection_name)
+            if success:
+                logger.info(f"Successfully selected collection {database_name}/{collection_name} in sidebar")
+                # Trigger collection selection to load documents
+                self.on_collection_selected(database_name, collection_name)
+            else:
+                logger.warning(f"Could not select collection {database_name}/{collection_name} in sidebar")
+        except Exception as e:
+            logger.error(f"Error selecting collection in sidebar: {e}")
+            # Fallback: just trigger collection selection
+            self.on_collection_selected(database_name, collection_name)
+    
     def on_database_selected(self, database_name: str):
         """Handle database selection."""
         import logging
@@ -732,35 +751,87 @@ class MainWindow(QMainWindow):
     # Placeholder methods for menu actions
     def on_new_connection(self):
         """Handle new connection menu action."""
-        # For now, show a simple new connection dialog
-        # In a full implementation, this would show a connection configuration dialog
-        MessageBoxHelper.information(
-            self, 
-            "New Connection", 
-            "New connection functionality is currently in development.\n\n"
-            "This feature will include:\n"
-            "• Connection name and description\n"
-            "• Advanced connection options\n"
-            "• Connection testing and validation\n"
-            "• Connection profiles and favorites\n\n"
-            "For now, use the connection panel above to connect to MongoDB."
-        )
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("Opening new connection dialog")
+        
+        # Show connection dialog
+        from .dialogs import ConnectionDialog
+        dialog = ConnectionDialog(self)
+        
+        if dialog.exec() == QDialog.Accepted:
+            connection_string = dialog.get_connection_string()
+            connection_options = dialog.get_connection_options()
+            
+            if connection_string:
+                logger.info(f"User confirmed new connection: {connection_string}")
+                
+                # Attempt to connect
+                success, message = self.mongo_service.connect_to_mongodb(connection_string)
+                
+                if success:
+                    logger.info("New connection established successfully")
+                    MessageBoxHelper.success(self, "Connection Successful", message)
+                    
+                    # Update UI state
+                    self.update_connection_state(True)
+                    self.refresh_databases()
+                else:
+                    logger.error(f"New connection failed: {message}")
+                    MessageBoxHelper.critical(self, "Connection Failed", message)
+            else:
+                logger.info("User cancelled new connection (empty connection string)")
+        else:
+            logger.info("User cancelled new connection dialog")
     
     def on_open_connection(self):
         """Handle open connection menu action."""
-        # For now, show a simple open connection dialog
-        # In a full implementation, this would show saved connections
-        MessageBoxHelper.information(
-            self, 
-            "Open Connection", 
-            "Open connection functionality is currently in development.\n\n"
-            "This feature will include:\n"
-            "• List of saved connections\n"
-            "• Connection history\n"
-            "• Quick connection shortcuts\n"
-            "• Connection import/export\n\n"
-            "For now, use the connection panel above to connect to MongoDB."
-        )
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("Opening connection dialog")
+        
+        # Get current connection string if connected
+        current_connection = ""
+        if self.mongo_service.is_connected():
+            connection_info = self.mongo_service.get_connection_info()
+            current_connection = connection_info.get('connection_string', '')
+        
+        # Show connection dialog with current connection string
+        from .dialogs import ConnectionDialog
+        dialog = ConnectionDialog(self, current_connection)
+        
+        if dialog.exec() == QDialog.Accepted:
+            connection_string = dialog.get_connection_string()
+            connection_options = dialog.get_connection_options()
+            
+            if connection_string:
+                logger.info(f"User confirmed connection: {connection_string}")
+                
+                # If already connected, disconnect first
+                if self.mongo_service.is_connected():
+                    logger.info("Disconnecting from current connection")
+                    self.mongo_service.disconnect_from_mongodb()
+                    self.update_connection_state(False)
+                
+                # Attempt to connect
+                success, message = self.mongo_service.connect_to_mongodb(connection_string)
+                
+                if success:
+                    logger.info("Connection established successfully")
+                    MessageBoxHelper.success(self, "Connection Successful", message)
+                    
+                    # Update UI state
+                    self.update_connection_state(True)
+                    self.refresh_databases()
+                else:
+                    logger.error(f"Connection failed: {message}")
+                    MessageBoxHelper.critical(self, "Connection Failed", message)
+            else:
+                logger.info("User cancelled connection (empty connection string)")
+        else:
+            logger.info("User cancelled connection dialog")
     
     def on_export_data(self):
         """Handle export data menu action."""
@@ -1051,16 +1122,68 @@ class MainWindow(QMainWindow):
     # Context menu action handlers
     def on_rename_database(self, database_name: str):
         """Handle rename database context menu action."""
-        # TODO: Implement rename database functionality
-        MessageBoxHelper.information(
-            self,
-            "Rename Database",
-            f"Rename database '{database_name}' functionality will be implemented here."
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Opening rename database dialog for: {database_name}")
+        
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(
+            self, 
+            "Rename Database", 
+            f"Rename '{database_name}' to:",
+            text=database_name
         )
+        
+        if ok and new_name.strip() and new_name.strip() != database_name:
+            logger.info(f"User confirmed rename database from '{database_name}' to '{new_name.strip()}'")
+            
+            reply = MessageBoxHelper.question(
+                self,
+                "Confirm Rename",
+                f"Are you sure you want to rename database '{database_name}' to '{new_name.strip()}'?\n\n"
+                "This operation will copy all collections and data to the new database."
+            )
+            
+            if reply:
+                logger.info(f"Attempting to rename database from '{database_name}' to '{new_name.strip()}'")
+                success, message = self.mongo_service.rename_database(database_name, new_name.strip())
+                
+                if success:
+                    logger.info(f"Successfully renamed database from '{database_name}' to '{new_name.strip()}'")
+                    MessageBoxHelper.information(self, "Success", message)
+                    
+                    # Update current database if it was the renamed one
+                    if self.current_database == database_name:
+                        self.current_database = new_name.strip()
+                        self.current_collection = ""
+                    
+                    self.refresh_databases()
+                else:
+                    logger.error(f"Failed to rename database from '{database_name}' to '{new_name.strip()}': {message}")
+                    MessageBoxHelper.critical(self, "Error", message)
+            else:
+                logger.info("User cancelled database rename operation")
+        elif ok:
+            logger.info("User cancelled rename (no change in name)")
+        else:
+            logger.info("User cancelled rename dialog")
     
     def on_delete_database(self, database_name: str):
         """Handle delete database context menu action."""
-        # TODO: Implement delete database functionality
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Opening delete database dialog for: {database_name}")
+        
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
         reply = MessageBoxHelper.question(
             self,
             "Delete Database",
@@ -1069,24 +1192,100 @@ class MainWindow(QMainWindow):
         )
         
         if reply:
-            MessageBoxHelper.information(
-                self,
-                "Delete Database",
-                f"Delete database '{database_name}' functionality will be implemented here."
-            )
+            logger.info(f"User confirmed delete database: {database_name}")
+            
+            logger.info(f"Attempting to delete database: {database_name}")
+            success, message = self.mongo_service.delete_database(database_name)
+            
+            if success:
+                logger.info(f"Successfully deleted database: {database_name}")
+                MessageBoxHelper.information(self, "Success", message)
+                
+                # Update current database if it was the deleted one
+                if self.current_database == database_name:
+                    self.current_database = ""
+                    self.current_collection = ""
+                
+                self.refresh_databases()
+            else:
+                logger.error(f"Failed to delete database '{database_name}': {message}")
+                MessageBoxHelper.critical(self, "Error", message)
+        else:
+            logger.info("User cancelled database deletion")
     
     def on_rename_collection(self, database_name: str, collection_name: str):
         """Handle rename collection context menu action."""
-        # TODO: Implement rename collection functionality
-        MessageBoxHelper.information(
-            self,
-            "Rename Collection",
-            f"Rename collection '{collection_name}' in database '{database_name}' functionality will be implemented here."
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Opening rename collection dialog for: {database_name}/{collection_name}")
+        
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(
+            self, 
+            "Rename Collection", 
+            f"Rename '{collection_name}' to:",
+            text=collection_name
         )
+        
+        if ok and new_name.strip():
+            if new_name.strip() == collection_name:
+                logger.info("User cancelled rename (no change in name)")
+                return
+            
+            logger.info(f"Attempting to rename collection {database_name}.{collection_name} → {database_name}.{new_name.strip()}")
+            
+            # Use the repository directly for collection rename
+            try:
+                from data.mongo_repository import MongoRepository
+                client = self.mongo_service._connection.get_client()
+                if client:
+                    repo = MongoRepository(client)
+                    success = repo.rename_collection(database_name, collection_name, new_name.strip())
+                    
+                    if success:
+                        logger.info(f"Successfully renamed collection to {new_name.strip()}")
+                        
+                        # Update current collection if it was the renamed one
+                        if self.current_database == database_name and self.current_collection == collection_name:
+                            self.current_collection = new_name.strip()
+                        
+                        # Refresh UI and automatically select the new collection
+                        self.refresh_databases()
+                        
+                        # Try to select the renamed collection in the sidebar
+                        self.select_collection_in_sidebar(database_name, new_name.strip())
+                    else:
+                        logger.error(f"Failed to rename collection: {new_name.strip()}")
+                        MessageBoxHelper.critical(
+                            self, 
+                            "Error", 
+                            f"Failed to rename collection '{collection_name}' to '{new_name.strip()}'"
+                        )
+                else:
+                    logger.error("No MongoDB client available")
+                    MessageBoxHelper.critical(self, "Error", "No MongoDB client available")
+            except Exception as e:
+                logger.error(f"Failed to rename collection: {e}", exc_info=True)
+                MessageBoxHelper.critical(self, "Error", f"Error renaming collection: {str(e)}")
+        else:
+            logger.info("User cancelled rename dialog")
     
     def on_delete_collection(self, database_name: str, collection_name: str):
         """Handle delete collection context menu action."""
-        # TODO: Implement delete collection functionality
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Opening delete collection dialog for: {database_name}/{collection_name}")
+        
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
         reply = MessageBoxHelper.question(
             self,
             "Delete Collection",
@@ -1095,11 +1294,25 @@ class MainWindow(QMainWindow):
         )
         
         if reply:
-            MessageBoxHelper.information(
-                self,
-                "Delete Collection",
-                f"Delete collection '{collection_name}' functionality will be implemented here."
-            )
+            logger.info(f"User confirmed delete collection: {database_name}/{collection_name}")
+            
+            logger.info(f"Attempting to delete collection: {database_name}/{collection_name}")
+            success, message = self.mongo_service.drop_collection(database_name, collection_name)
+            
+            if success:
+                logger.info(f"Successfully deleted collection: {database_name}/{collection_name}")
+                MessageBoxHelper.information(self, "Success", message)
+                
+                # Update current collection if it was the deleted one
+                if self.current_database == database_name and self.current_collection == collection_name:
+                    self.current_collection = ""
+                
+                self.refresh_databases()
+            else:
+                logger.error(f"Failed to delete collection '{database_name}/{collection_name}': {message}")
+                MessageBoxHelper.critical(self, "Error", message)
+        else:
+            logger.info("User cancelled collection deletion")
     
     def on_insert_document_from_context(self, database_name: str, collection_name: str):
         """Handle insert document from context menu action."""
@@ -1131,12 +1344,23 @@ class MainWindow(QMainWindow):
         row = document_data.get("row", -1)
         logger.info(f"View document requested for row {row}")
         
-        # TODO: Implement document viewer dialog
-        MessageBoxHelper.information(
-            self,
-            "View Document",
-            f"View document at row {row} functionality will be implemented here."
-        )
+        if not self.current_database or not self.current_collection:
+            MessageBoxHelper.warning(self, "Warning", "No collection selected.")
+            return
+        
+        # Get the document data for the selected row
+        document = self.data_table.get_document_by_row(row)
+        if not document:
+            logger.error(f"No document found at row {row}")
+            MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
+            return
+        
+        logger.info(f"Opening document viewer for document at row {row}")
+        
+        # Create and show document viewer dialog
+        from .dialogs import DocumentViewerDialog
+        dialog = DocumentViewerDialog(document, self)
+        dialog.exec()
     
     def on_edit_document(self, document_data: dict):
         """Handle edit document context menu action."""
@@ -1146,12 +1370,58 @@ class MainWindow(QMainWindow):
         row = document_data.get("row", -1)
         logger.info(f"Edit document requested for row {row}")
         
-        # TODO: Implement document editor dialog
-        MessageBoxHelper.information(
-            self,
-            "Edit Document",
-            f"Edit document at row {row} functionality will be implemented here."
-        )
+        if not self.current_database or not self.current_collection:
+            MessageBoxHelper.warning(self, "Warning", "No collection selected.")
+            return
+        
+        # Get the document data for the selected row
+        document = self.data_table.get_document_by_row(row)
+        if not document:
+            logger.error(f"No document found at row {row}")
+            MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
+            return
+        
+        logger.info(f"Opening document editor for document at row {row}")
+        
+        # Create and show document editor dialog
+        from .dialogs import EditDocumentDialog
+        dialog = EditDocumentDialog(document, self.current_database, self.current_collection, self)
+        if dialog.exec() == QDialog.Accepted:
+            updated_document = dialog.get_document()
+            if updated_document:
+                logger.info(f"User confirmed document edit for row {row}")
+                
+                # Update the document in MongoDB
+                try:
+                    import json
+                    from data.mongo_repository import MongoRepository
+                    client = self.mongo_service._connection.get_client()
+                    if client:
+                        repo = MongoRepository(client)
+                        success = repo.replace_document(
+                            self.current_database, 
+                            self.current_collection, 
+                            document.get("_id"), 
+                            updated_document
+                        )
+                        
+                        if success:
+                            logger.info(f"Successfully updated document at row {row}")
+                            MessageBoxHelper.information(self, "Success", "Document updated successfully")
+                            self.refresh_documents()
+                        else:
+                            logger.error(f"Failed to update document at row {row}")
+                            MessageBoxHelper.critical(self, "Error", "Failed to update document")
+                    else:
+                        logger.error("No MongoDB client available")
+                        MessageBoxHelper.critical(self, "Error", "No MongoDB client available")
+                except Exception as e:
+                    logger.error(f"Error updating document: {e}", exc_info=True)
+                    MessageBoxHelper.critical(self, "Error", f"Error updating document: {str(e)}")
+            else:
+                logger.info("User cancelled document edit (no changes)")
+        else:
+            logger.info("User cancelled document edit dialog")
     
     def on_delete_document_from_context(self, document_data: dict):
         """Handle delete document from context menu action."""
@@ -1210,10 +1480,52 @@ class MainWindow(QMainWindow):
     
     def on_insert_document(self):
         """Handle insert document toolbar action."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
         if not self.current_database or not self.current_collection:
             MessageBoxHelper.warning(self, "Warning", "Please select a collection first.")
             return
-        self.tab_widget.setCurrentIndex(1)  # Operations tab
+        
+        logger.info(f"Opening insert document dialog for {self.current_database}/{self.current_collection}")
+        
+        # Show insert document dialog
+        from .dialogs import InsertDocumentDialog
+        dialog = InsertDocumentDialog(self.current_database, self.current_collection, self)
+        
+        if dialog.exec() == QDialog.Accepted:
+            document = dialog.get_document()
+            if document:
+                logger.info(f"User confirmed document insertion")
+                
+                # Insert the document into MongoDB
+                try:
+                    import json
+                    document_json = json.dumps(document)
+                    success, message = self.mongo_service.insert_document(
+                        self.current_database, 
+                        self.current_collection, 
+                        document_json
+                    )
+                    
+                    if success:
+                        logger.info(f"Successfully inserted document: {message}")
+                        MessageBoxHelper.information(self, "Success", f"Document inserted successfully.\n\n{message}")
+                        self.refresh_documents()
+                    else:
+                        logger.error(f"Failed to insert document: {message}")
+                        MessageBoxHelper.critical(self, "Error", f"Failed to insert document.\n\n{message}")
+                except Exception as e:
+                    logger.error(f"Error inserting document: {e}", exc_info=True)
+                    MessageBoxHelper.critical(self, "Error", f"Error inserting document: {str(e)}")
+            else:
+                logger.info("User cancelled document insertion (invalid document)")
+        else:
+            logger.info("User cancelled insert document dialog")
     
     def on_update_document(self):
         """Handle update document toolbar action."""

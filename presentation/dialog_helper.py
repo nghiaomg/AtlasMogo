@@ -18,7 +18,7 @@ class DialogHelper:
     @staticmethod
     def create_button_layout(primary_text="", primary_icon="", primary_action=None,
                            destructive_text="", destructive_icon="", destructive_action=None,
-                           secondary_text="Cancel", secondary_icon="fa6s.times", secondary_action=None,
+                           secondary_text="Cancel", secondary_icon="fa6s.xmark", secondary_action=None,
                            show_primary=True, show_destructive=False, show_secondary=True):
         """
         Create a consistent button layout for dialogs.
@@ -168,7 +168,7 @@ class DialogHelper:
             primary_icon="fa6s.check",
             primary_action=primary_action,
             secondary_text=secondary_text,
-            secondary_icon="fa6s.times",
+            secondary_icon="fa6s.xmark",
             secondary_action=secondary_action
         )
     
@@ -198,7 +198,7 @@ class DialogHelper:
             primary_icon="fa6s.check-circle",
             primary_action=confirm_action,
             secondary_text=cancel_text,
-            secondary_icon="fa6s.times",
+            secondary_icon="fa6s.xmark",
             secondary_action=cancel_action
         )
     
@@ -226,7 +226,7 @@ class DialogHelper:
             destructive_icon="fa6s.trash",
             destructive_action=destructive_action,
             secondary_text=cancel_text,
-            secondary_icon="fa6s.times",
+            secondary_icon="fa6s.xmark",
             secondary_action=cancel_action,
             show_primary=False,
             show_destructive=True
@@ -272,7 +272,7 @@ class DialogHelper:
     
     @staticmethod
     def create_standard_button_layout(parent_dialog, primary_text="OK", primary_role="ok", primary_icon=None,
-                                    secondary_text="Cancel", secondary_role="cancel", secondary_icon="fa6s.times"):
+                                    secondary_text="Cancel", secondary_role="cancel", secondary_icon="fa6s.xmark"):
         """
         Create a standard button layout with proper action binding.
         

@@ -355,3 +355,33 @@ class Sidebar(QObject):
         """Set the error state for the sidebar."""
         self.db_count_label.setText("Error loading databases")
         self.db_count_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+    
+    def select_collection(self, database_name: str, collection_name: str) -> bool:
+        """Select a specific collection in the tree."""
+        if not self.db_tree:
+            return False
+        
+        try:
+            # Find the database item
+            for i in range(self.db_tree.topLevelItemCount()):
+                db_item = self.db_tree.topLevelItem(i)
+                db_data = db_item.data(0, Qt.UserRole)
+                
+                if db_data and db_data.get("name") == database_name:
+                    # Find the collection item
+                    for j in range(db_item.childCount()):
+                        coll_item = db_item.child(j)
+                        coll_data = coll_item.data(0, Qt.UserRole)
+                        
+                        if coll_data and coll_data.get("name") == collection_name:
+                            # Select the collection item
+                            self.db_tree.setCurrentItem(coll_item)
+                            self.db_tree.scrollToItem(coll_item)
+                            return True
+            
+            return False
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error selecting collection {database_name}/{collection_name}: {e}")
+            return False

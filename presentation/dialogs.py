@@ -74,7 +74,7 @@ class CreateDatabaseDialog(QDialog):
             primary_icon="fa6s.plus",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         self.create_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
@@ -161,7 +161,7 @@ class CreateCollectionDialog(QDialog):
             primary_icon="fa6s.folder-plus",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         self.create_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
@@ -239,7 +239,7 @@ class ConfirmationDialog(QDialog):
                 primary_icon="fa6s.trash",
                 secondary_text=self.cancel_text,
                 secondary_role="cancel",
-                secondary_icon="fa6s.times"
+                secondary_icon="fa6s.xmark"
             )
         else:
             button_layout, button_dict = DialogHelper.create_standard_button_layout(
@@ -249,7 +249,7 @@ class ConfirmationDialog(QDialog):
                 primary_icon="fa6s.check",
                 secondary_text=self.cancel_text,
                 secondary_role="no",
-                secondary_icon="fa6s.times"
+                secondary_icon="fa6s.xmark"
             )
         
         layout.addLayout(button_layout)
@@ -343,7 +343,7 @@ class RenameDialog(QDialog):
             primary_icon="fa6s.pen",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         self.rename_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
@@ -360,121 +360,6 @@ class RenameDialog(QDialog):
     def get_new_name(self):
         """Get the new name entered by the user."""
         return self.name_edit.text().strip()
-    
-    def exec_(self):
-        """Override exec_ to log dialog result."""
-        result = super().exec_()
-        log_dialog_result(self, result)
-        return result
-
-
-class InsertDocumentDialog(QDialog):
-    """Dialog for inserting a new document."""
-    
-    def __init__(self, parent=None, database_name="", collection_name=""):
-        super().__init__(parent)
-        self.setWindowTitle("Insert Document")
-        self.setModal(True)
-        self.setFixedSize(500, 400)
-        
-        self.database_name = database_name
-        self.collection_name = collection_name
-        self.document_json = ""
-        self.setup_ui()
-        
-        # Log dialog creation
-        log_dialog_creation(self, "InsertDocumentDialog")
-        
-    def setup_ui(self):
-        """Setup the dialog UI."""
-        # Apply consistent dialog styling
-        DialogHelper.apply_dialog_style(self)
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
-        
-        # Title section
-        title_layout = DialogHelper.create_title_section(
-            "Insert New Document",
-            "Enter JSON document to insert"
-        )
-        layout.addLayout(title_layout)
-        
-        # Form layout
-        form_layout = QFormLayout()
-        form_layout.setSpacing(12)
-        
-        # Database and collection info
-        if self.database_name:
-            db_label = QLabel(self.database_name)
-            db_label.setStyleSheet("background-color: #f9fafb; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151;")
-            form_layout.addRow("Database:", db_label)
-            
-        if self.collection_name:
-            coll_label = QLabel(self.collection_name)
-            coll_label.setStyleSheet("background-color: #f9fafb; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; color: #374151;")
-            form_layout.addRow("Collection:", coll_label)
-        
-        layout.addLayout(form_layout)
-        
-        # Document JSON input
-        doc_label = QLabel("Document (JSON format):")
-        doc_label.setStyleSheet("font-weight: 500; margin-top: 8px;")
-        layout.addWidget(doc_label)
-        
-        self.document_edit = QTextEdit()
-        self.document_edit.setPlaceholderText('{"name": "John Doe", "age": 30, "email": "john@example.com"}')
-        self.document_edit.textChanged.connect(self.validate_input)
-        self.document_edit.setMinimumHeight(120)
-        layout.addWidget(self.document_edit)
-        
-        # Example button
-        example_btn = QPushButton("Insert Example")
-        example_btn.setStyleSheet(BUTTON_STYLES['dialog_secondary'])
-        example_btn.clicked.connect(self.insert_example)
-        layout.addWidget(example_btn)
-        
-        # Buttons
-        button_layout, button_dict = DialogHelper.create_standard_button_layout(
-            self,
-            primary_text="Insert Document",
-            primary_role="ok",
-            primary_icon="fa6s.plus",
-            secondary_text="Cancel",
-            secondary_role="cancel",
-            secondary_icon="fa6s.times"
-        )
-        self.insert_btn = button_dict['primary']  # Primary button
-        layout.addLayout(button_layout)
-        
-    def validate_input(self):
-        """Validate the JSON input."""
-        try:
-            import json
-            text = self.document_edit.toPlainText().strip()
-            if text:
-                json.loads(text)
-                self.insert_btn.setEnabled(True)
-            else:
-                self.insert_btn.setEnabled(False)
-        except json.JSONDecodeError:
-            self.insert_btn.setEnabled(False)
-            
-    def insert_example(self):
-        """Insert an example document."""
-        example = '''{
-  "name": "John Doe",
-  "age": 30,
-  "email": "john@example.com",
-  "city": "New York",
-  "active": true
-}'''
-        self.document_edit.setPlainText(example)
-        
-    def get_document_json(self):
-        """Get the document JSON string."""
-        return self.document_edit.toPlainText().strip()
     
     def exec_(self):
         """Override exec_ to log dialog result."""
@@ -586,7 +471,7 @@ class QueryBuilderDialog(QDialog):
             primary_icon="fa6s.magnifying-glass",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         self.execute_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
@@ -696,7 +581,7 @@ class SettingsDialog(QDialog):
             primary_icon="fa6s.save",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         layout.addLayout(button_layout)
         
@@ -786,7 +671,7 @@ class ExportDataDialog(QDialog):
             primary_icon="fa6s.download",
             secondary_text="Cancel",
             secondary_role="cancel",
-            secondary_icon="fa6s.times"
+            secondary_icon="fa6s.xmark"
         )
         self.export_btn = button_dict['primary']  # Primary button
         layout.addLayout(button_layout)
@@ -797,6 +682,524 @@ class ExportDataDialog(QDialog):
             'format': self.export_format,
             'path': self.path_edit.text().strip()
         }
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
+
+
+class DocumentViewerDialog(QDialog):
+    """Dialog for viewing a document in a formatted way."""
+    
+    def __init__(self, document: dict, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("View Document")
+        self.setModal(True)
+        self.setFixedSize(600, 500)
+        
+        self.document = document
+        self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "DocumentViewerDialog")
+        
+    def setup_ui(self):
+        """Setup the dialog UI."""
+        # Apply consistent dialog styling
+        DialogHelper.apply_dialog_style(self)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # Title section
+        title_layout = DialogHelper.create_title_section(
+            "View Document",
+            "Document details and content"
+        )
+        layout.addLayout(title_layout)
+        
+        # Document ID info
+        doc_id = self.document.get("_id", "No ID")
+        id_label = QLabel(f"Document ID: {doc_id}")
+        id_label.setStyleSheet("color: #6b7280; font-size: 12px; margin-bottom: 8px;")
+        layout.addWidget(id_label)
+        
+        # Document content
+        content_group = QGroupBox("Document Content")
+        content_layout = QVBoxLayout(content_group)
+        
+        self.document_text = QTextEdit()
+        self.document_text.setReadOnly(True)
+        self.document_text.setFont(QFont("Consolas", 10))
+        
+        # Format and display the document
+        import json
+        try:
+            formatted_json = json.dumps(self.document, indent=2, default=str)
+            self.document_text.setPlainText(formatted_json)
+        except Exception as e:
+            self.document_text.setPlainText(f"Error formatting document: {str(e)}\n\nRaw document: {str(self.document)}")
+        
+        content_layout.addWidget(self.document_text)
+        layout.addWidget(content_group)
+        
+        # Buttons
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
+            primary_text="Close",
+            primary_role="ok",
+            primary_icon="fa6s.xmark",
+            secondary_text="",
+            secondary_role="",
+            secondary_icon=""
+        )
+        self.close_btn = button_dict['primary']  # Primary button
+        layout.addLayout(button_layout)
+        
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
+
+
+class EditDocumentDialog(QDialog):
+    """Dialog for editing a document."""
+    
+    def __init__(self, document: dict, database_name: str, collection_name: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Document")
+        self.setModal(True)
+        self.setFixedSize(700, 600)
+        
+        self.original_document = document
+        self.database_name = database_name
+        self.collection_name = collection_name
+        self.edited_document = None
+        self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "EditDocumentDialog")
+        
+    def setup_ui(self):
+        """Setup the dialog UI."""
+        # Apply consistent dialog styling
+        DialogHelper.apply_dialog_style(self)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # Title section
+        title_layout = DialogHelper.create_title_section(
+            "Edit Document",
+            f"Edit document in {self.database_name}/{self.collection_name}"
+        )
+        layout.addLayout(title_layout)
+        
+        # Document ID info
+        doc_id = self.original_document.get("_id", "No ID")
+        id_label = QLabel(f"Document ID: {doc_id}")
+        id_label.setStyleSheet("color: #6b7280; font-size: 12px; margin-bottom: 8px;")
+        layout.addWidget(id_label)
+        
+        # Document content editor
+        content_group = QGroupBox("Document Content (JSON)")
+        content_layout = QVBoxLayout(content_group)
+        
+        self.document_text = QTextEdit()
+        self.document_text.setFont(QFont("Consolas", 10))
+        
+        # Pre-fill with the original document
+        import json
+        try:
+            formatted_json = json.dumps(self.original_document, indent=2, default=str)
+            self.document_text.setPlainText(formatted_json)
+        except Exception as e:
+            self.document_text.setPlainText(f"Error formatting document: {str(e)}\n\nRaw document: {str(self.original_document)}")
+        
+        content_layout.addWidget(self.document_text)
+        layout.addWidget(content_group)
+        
+        # Validation info
+        self.validation_label = QLabel("")
+        self.validation_label.setStyleSheet("color: #6b7280; font-size: 11px; font-style: italic;")
+        layout.addWidget(self.validation_label)
+        
+        # Connect text change to validation
+        self.document_text.textChanged.connect(self.validate_json)
+        
+        # Buttons
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
+            primary_text="Save Changes",
+            primary_role="ok",
+            primary_icon="fa6s.save",
+            secondary_text="Cancel",
+            secondary_role="cancel",
+            secondary_icon="fa6s.xmark"
+        )
+        self.save_btn = button_dict['primary']  # Primary button
+        self.cancel_btn = button_dict['secondary']  # Secondary button
+        layout.addLayout(button_layout)
+        
+        # Initial validation
+        self.validate_json()
+        
+    def validate_json(self):
+        """Validate the JSON input."""
+        try:
+            text = self.document_text.toPlainText().strip()
+            if not text:
+                self.validation_label.setText("Empty document")
+                self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+                self.save_btn.setEnabled(False)
+                return
+            
+            import json
+            parsed = json.loads(text)
+            if not isinstance(parsed, dict):
+                self.validation_label.setText("Document must be a JSON object")
+                self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+                self.save_btn.setEnabled(False)
+                return
+            
+            self.validation_label.setText("Valid JSON document")
+            self.validation_label.setStyleSheet("color: #28a745; font-size: 11px; font-style: italic;")
+            self.save_btn.setEnabled(True)
+            
+        except json.JSONDecodeError as e:
+            self.validation_label.setText(f"Invalid JSON: {str(e)}")
+            self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+            self.save_btn.setEnabled(False)
+        except Exception as e:
+            self.validation_label.setText(f"Error: {str(e)}")
+            self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+            self.save_btn.setEnabled(False)
+    
+    def get_document(self):
+        """Get the edited document."""
+        try:
+            text = self.document_text.toPlainText().strip()
+            if not text:
+                return None
+            
+            import json
+            parsed = json.loads(text)
+            if not isinstance(parsed, dict):
+                return None
+            
+            return parsed
+        except Exception:
+            return None
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
+
+
+class ConnectionDialog(QDialog):
+    """Dialog for configuring MongoDB connection."""
+    
+    def __init__(self, parent=None, connection_string=""):
+        super().__init__(parent)
+        self.setWindowTitle("MongoDB Connection")
+        self.setModal(True)
+        self.setFixedSize(500, 400)
+        
+        self.connection_string = connection_string
+        self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "ConnectionDialog")
+        
+    def setup_ui(self):
+        """Setup the dialog UI."""
+        # Apply consistent dialog styling
+        DialogHelper.apply_dialog_style(self)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # Title section
+        title_layout = DialogHelper.create_title_section(
+            "MongoDB Connection",
+            "Configure connection to MongoDB server"
+        )
+        layout.addLayout(title_layout)
+        
+        # Connection form
+        form_layout = QFormLayout()
+        form_layout.setSpacing(12)
+        
+        # Connection string input
+        self.connection_edit = QLineEdit()
+        self.connection_edit.setPlaceholderText("mongodb://localhost:27017")
+        self.connection_edit.setText(self.connection_string)
+        form_layout.addRow("Connection String:", self.connection_edit)
+        
+        # Connection options
+        options_group = QGroupBox("Connection Options")
+        options_layout = QFormLayout(options_group)
+        
+        self.timeout_spin = QSpinBox()
+        self.timeout_spin.setRange(1, 60)
+        self.timeout_spin.setValue(30)
+        self.timeout_spin.setSuffix(" seconds")
+        options_layout.addRow("Timeout:", self.timeout_spin)
+        
+        self.retry_writes = QCheckBox("Enable retry writes")
+        self.retry_writes.setChecked(True)
+        options_layout.addRow("", self.retry_writes)
+        
+        layout.addLayout(form_layout)
+        layout.addWidget(options_group)
+        
+        # Test connection button
+        test_layout = QHBoxLayout()
+        test_layout.addStretch()
+        
+        self.test_btn = QPushButton("Test Connection")
+        self.test_btn.setIcon(fa.icon('fa6s.play'))
+        self.test_btn.clicked.connect(self.test_connection)
+        test_layout.addWidget(self.test_btn)
+        
+        layout.addLayout(test_layout)
+        
+        # Buttons
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
+            primary_text="Connect",
+            primary_role="ok",
+            primary_icon="fa6s.plug",
+            secondary_text="Cancel",
+            secondary_role="cancel",
+            secondary_icon="fa6s.xmark"
+        )
+        self.connect_btn = button_dict['primary']  # Primary button
+        self.cancel_btn = button_dict['secondary']  # Secondary button
+        layout.addLayout(button_layout)
+        
+        # Set focus to connection string input
+        self.connection_edit.setFocus()
+        
+    def test_connection(self):
+        """Test the MongoDB connection."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        connection_string = self.connection_edit.text().strip()
+        if not connection_string:
+            MessageBoxHelper.warning(self, "Warning", "Please enter a connection string.")
+            return
+        
+        logger.info(f"Testing connection to: {connection_string}")
+        
+        try:
+            from pymongo import MongoClient
+            from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+            
+            # Create a test client with timeout
+            timeout_ms = self.timeout_spin.value() * 1000
+            client = MongoClient(connection_string, serverSelectionTimeoutMS=timeout_ms)
+            
+            # Test the connection
+            client.admin.command('ping')
+            
+            # Get server info
+            server_info = client.server_info()
+            version = server_info.get('version', 'Unknown')
+            
+            logger.info(f"Connection test successful - MongoDB version: {version}")
+            MessageBoxHelper.success(
+                self,
+                "Connection Test Successful",
+                f"Successfully connected to MongoDB server!\n\n"
+                f"Server Version: {version}\n"
+                f"Connection String: {connection_string}"
+            )
+            
+            client.close()
+            
+        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            logger.error(f"Connection test failed: {e}")
+            MessageBoxHelper.critical(
+                self,
+                "Connection Test Failed",
+                f"Failed to connect to MongoDB server.\n\n"
+                f"Error: {str(e)}\n\n"
+                f"Please check:\n"
+                f"• Connection string is correct\n"
+                f"• MongoDB server is running\n"
+                f"• Network connectivity\n"
+                f"• Firewall settings"
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error during connection test: {e}")
+            MessageBoxHelper.critical(
+                self,
+                "Connection Test Error",
+                f"Unexpected error during connection test.\n\n"
+                f"Error: {str(e)}"
+            )
+    
+    def get_connection_string(self):
+        """Get the connection string."""
+        return self.connection_edit.text().strip()
+    
+    def get_connection_options(self):
+        """Get the connection options."""
+        return {
+            'timeout': self.timeout_spin.value(),
+            'retry_writes': self.retry_writes.isChecked()
+        }
+    
+    def exec_(self):
+        """Override exec_ to log dialog result."""
+        result = super().exec_()
+        log_dialog_result(self, result)
+        return result
+
+
+class InsertDocumentDialog(QDialog):
+    """Dialog for inserting a new document."""
+    
+    def __init__(self, database_name: str, collection_name: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Insert Document")
+        self.setModal(True)
+        self.setFixedSize(700, 600)
+        
+        self.database_name = database_name
+        self.collection_name = collection_name
+        self.inserted_document = None
+        self.setup_ui()
+        
+        # Log dialog creation
+        log_dialog_creation(self, "InsertDocumentDialog")
+        
+    def setup_ui(self):
+        """Setup the dialog UI."""
+        # Apply consistent dialog styling
+        DialogHelper.apply_dialog_style(self)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # Title section
+        title_layout = DialogHelper.create_title_section(
+            "Insert Document",
+            f"Insert new document into {self.database_name}/{self.collection_name}"
+        )
+        layout.addLayout(title_layout)
+        
+        # Document content editor
+        content_group = QGroupBox("Document Content (JSON)")
+        content_layout = QVBoxLayout(content_group)
+        
+        self.document_text = QTextEdit()
+        self.document_text.setFont(QFont("Consolas", 10))
+        
+        # Pre-fill with a sample document
+        sample_document = {
+            "name": "Sample Document",
+            "description": "This is a sample document",
+            "created_at": "2024-01-01T00:00:00Z",
+            "tags": ["sample", "document"],
+            "metadata": {
+                "version": 1,
+                "active": True
+            }
+        }
+        
+        import json
+        try:
+            formatted_json = json.dumps(sample_document, indent=2)
+            self.document_text.setPlainText(formatted_json)
+        except Exception as e:
+            self.document_text.setPlainText('{\n  "name": "Sample Document",\n  "description": "This is a sample document"\n}')
+        
+        content_layout.addWidget(self.document_text)
+        layout.addWidget(content_group)
+        
+        # Validation info
+        self.validation_label = QLabel("")
+        self.validation_label.setStyleSheet("color: #6b7280; font-size: 11px; font-style: italic;")
+        layout.addWidget(self.validation_label)
+        
+        # Connect text change to validation
+        self.document_text.textChanged.connect(self.validate_json)
+        
+        # Buttons
+        button_layout, button_dict = DialogHelper.create_standard_button_layout(
+            self,
+            primary_text="Insert Document",
+            primary_role="ok",
+            primary_icon="fa6s.plus",
+            secondary_text="Cancel",
+            secondary_role="cancel",
+            secondary_icon="fa6s.xmark"
+        )
+        self.insert_btn = button_dict['primary']  # Primary button
+        self.cancel_btn = button_dict['secondary']  # Secondary button
+        layout.addLayout(button_layout)
+        
+        # Initial validation
+        self.validate_json()
+        
+    def validate_json(self):
+        """Validate the JSON input."""
+        try:
+            text = self.document_text.toPlainText().strip()
+            if not text:
+                self.validation_label.setText("Empty document")
+                self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+                self.insert_btn.setEnabled(False)
+                return
+            
+            import json
+            parsed = json.loads(text)
+            if not isinstance(parsed, dict):
+                self.validation_label.setText("Document must be a JSON object")
+                self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+                self.insert_btn.setEnabled(False)
+                return
+            
+            self.validation_label.setText("Valid JSON document")
+            self.validation_label.setStyleSheet("color: #28a745; font-size: 11px; font-style: italic;")
+            self.insert_btn.setEnabled(True)
+            
+        except json.JSONDecodeError as e:
+            self.validation_label.setText(f"Invalid JSON: {str(e)}")
+            self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+            self.insert_btn.setEnabled(False)
+        except Exception as e:
+            self.validation_label.setText(f"Error: {str(e)}")
+            self.validation_label.setStyleSheet("color: #dc3545; font-size: 11px; font-style: italic;")
+            self.insert_btn.setEnabled(False)
+    
+    def get_document(self):
+        """Get the document to insert."""
+        try:
+            text = self.document_text.toPlainText().strip()
+            if not text:
+                return None
+            
+            import json
+            parsed = json.loads(text)
+            if not isinstance(parsed, dict):
+                return None
+            
+            return parsed
+        except Exception:
+            return None
     
     def exec_(self):
         """Override exec_ to log dialog result."""

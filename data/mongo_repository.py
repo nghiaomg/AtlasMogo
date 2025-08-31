@@ -192,6 +192,44 @@ class MongoRepository:
             logger.error(f"Error updating document in {collection_name}: {e}")
             return False
     
+    def replace_document(self, database_name: str, collection_name: str, 
+                        document_id, new_document: Dict[str, Any]) -> bool:
+        """
+        Replace a document in a collection.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            document_id: The _id of the document to replace
+            new_document: New document data
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from bson import ObjectId
+            
+            db = self._client[database_name]
+            collection = db[collection_name]
+            
+            # Convert string _id to ObjectId if needed
+            if isinstance(document_id, str):
+                try:
+                    document_id = ObjectId(document_id)
+                except Exception:
+                    # If it's not a valid ObjectId, use as string
+                    pass
+            
+            # Preserve the original _id
+            new_document["_id"] = document_id
+            
+            result = collection.replace_one({"_id": document_id}, new_document)
+            logger.info(f"Document replaced: {result.modified_count} modified")
+            return result.modified_count > 0
+        except PyMongoError as e:
+            logger.error(f"Error replacing document in {collection_name}: {e}")
+            return False
+    
     def delete_document(self, database_name: str, collection_name: str, 
                        filter_query: Dict[str, Any]) -> bool:
         """
@@ -288,6 +326,32 @@ class MongoRepository:
             return True
         except PyMongoError as e:
             logger.error(f"Error dropping collection {collection_name}: {e}")
+            return False
+    
+    def rename_collection(self, database_name: str, old_name: str, new_name: str) -> bool:
+        """
+        Rename a collection using admin database command.
+        
+        Args:
+            database_name: Name of the database
+            old_name: Current collection name
+            new_name: New collection name
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Use admin database with fully qualified namespace
+            self._client.admin.command(
+                "renameCollection",
+                f"{database_name}.{old_name}",
+                to=f"{database_name}.{new_name}",
+                dropTarget=False
+            )
+            logger.info(f"Collection {database_name}.{old_name} renamed to {database_name}.{new_name} successfully")
+            return True
+        except PyMongoError as e:
+            logger.error(f"Error renaming collection {database_name}.{old_name} to {database_name}.{new_name}: {e}")
             return False
     
     def create_database(self, database_name: str) -> bool:
