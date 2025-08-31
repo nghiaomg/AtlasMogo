@@ -86,7 +86,7 @@ class DataTable(QObject):
         self.documents_table.setMinimumHeight(300)
         
         # Import and apply table styles
-        from .styles import DATA_TABLE_STYLE
+        from ..styles.styles import DATA_TABLE_STYLE
         self.documents_table.setStyleSheet(DATA_TABLE_STYLE)
         
         # Enable sorting
@@ -181,7 +181,7 @@ class DataTable(QObject):
             return
         
         # Reset to default style
-        from .styles import DATA_TABLE_STYLE
+        from ..styles.styles import DATA_TABLE_STYLE
         self.documents_table.setStyleSheet(DATA_TABLE_STYLE)
         
         # Get all unique fields from documents
@@ -332,7 +332,7 @@ class DataTable(QObject):
     
     def _get_context_menu_style(self):
         """Get the context menu stylesheet."""
-        from .styles import CONTEXT_MENU_STYLE
+        from ..styles.styles import CONTEXT_MENU_STYLE
         return CONTEXT_MENU_STYLE
     
     def _handle_view_document(self, row: int):

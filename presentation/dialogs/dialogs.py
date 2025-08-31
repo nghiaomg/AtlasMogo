@@ -13,7 +13,7 @@ from PySide6.QtGui import QFont, QIcon
 import qtawesome as fa
 
 from .dialog_helper import DialogHelper
-from .styles import BUTTON_STYLES
+from ..styles.styles import BUTTON_STYLES
 from .dialog_logger import log_dialog_creation, log_dialog_result
 
 

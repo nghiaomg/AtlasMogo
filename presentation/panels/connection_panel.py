@@ -12,7 +12,7 @@ from PySide6.QtGui import QFont
 import qtawesome as fa
 
 # Import styles
-from .styles import BUTTON_STYLES, CONNECTION_PANEL_STYLE
+from ..styles.styles import BUTTON_STYLES, CONNECTION_PANEL_STYLE
 
 
 class ConnectionPanel(QObject):

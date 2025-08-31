@@ -12,7 +12,7 @@ from PySide6.QtGui import QFont, QAction
 import qtawesome as fa
 
 # Import styles at module level
-from .styles import BUTTON_STYLES, LABEL_STYLES, SIDEBAR_TREE_STYLE, CONTEXT_MENU_STYLE
+from ..styles.styles import BUTTON_STYLES, LABEL_STYLES, SIDEBAR_TREE_STYLE, CONTEXT_MENU_STYLE
 
 
 class Sidebar(QObject):

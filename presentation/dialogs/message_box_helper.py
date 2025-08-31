@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 import qtawesome as fa
 
-from .styles import BUTTON_STYLES, DIALOG_STYLE, COLORS
+from ..styles.styles import BUTTON_STYLES, DIALOG_STYLE, COLORS
 
 
 class CustomMessageBox(QDialog):

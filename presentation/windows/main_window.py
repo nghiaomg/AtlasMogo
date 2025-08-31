@@ -11,24 +11,27 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QSplitter, QTabWidget,
     QApplication, QSizePolicy, QDialog, QMessageBox
 )
-from .message_box_helper import MessageBoxHelper
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtGui import QIcon
 
 # Import modular components
-from .menu_bar import MenuBar
-from .toolbar import ToolBar
-from .connection_panel import ConnectionPanel
-from .sidebar import Sidebar
-from .data_table import DataTable
-from .operations_panel import OperationsPanel
-from .query_panel import QueryPanel
-from .status_bar import StatusBar
+from ..panels.menu_bar import MenuBar
+from ..panels.toolbar import ToolBar
+from ..panels.connection_panel import ConnectionPanel
+from ..panels.sidebar import Sidebar
+from ..panels.data_table import DataTable
+from ..panels.operations_panel import OperationsPanel
+from ..panels.query_panel import QueryPanel
+from ..panels.status_bar import StatusBar
 
 # Import dialogs
-from .dialogs import (
+from ..dialogs.dialogs import (
     CreateDatabaseDialog, CreateCollectionDialog, InsertDocumentDialog,
     QueryBuilderDialog, SettingsDialog, ExportDataDialog
 )
+
+# Import helpers
+from ..dialogs.message_box_helper import MessageBoxHelper
 
 from business.mongo_service import MongoService
 
@@ -77,6 +80,9 @@ class MainWindow(QMainWindow):
         """Initialize the user interface."""
         self.setWindowTitle("AtlasMogo - MongoDB Management Tool")
         
+        # Set application icon
+        self._set_window_icon()
+        
         # Get screen geometry and calculate optimal window size
         screen = QApplication.primaryScreen().geometry()
         taskbar_height = 40
@@ -108,6 +114,42 @@ class MainWindow(QMainWindow):
         
         # Connect resize event for dynamic layout adjustment
         self.resizeEvent = self.on_resize_event
+    
+    def _set_window_icon(self):
+        """Set the application window icon."""
+        import logging
+        import os
+        from pathlib import Path
+        
+        logger = logging.getLogger(__name__)
+        
+        # Try multiple paths for the icon file
+        icon_paths = [
+            "resources/icons/icon.ico",  # Relative to current directory
+            os.path.join(os.path.dirname(__file__), "..", "..", "resources", "icons", "icon.ico"),  # Relative to this file
+            os.path.join(os.getcwd(), "resources", "icons", "icon.ico"),  # Relative to working directory
+        ]
+        
+        # For PyInstaller bundled app
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            base_path = sys._MEIPASS
+            icon_paths.insert(0, os.path.join(base_path, "resources", "icons", "icon.ico"))
+        
+        icon_set = False
+        for icon_path in icon_paths:
+            if os.path.exists(icon_path):
+                try:
+                    self.setWindowIcon(QIcon(icon_path))
+                    logger.info(f"App icon loaded from {icon_path}")
+                    icon_set = True
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed to load icon from {icon_path}: {e}")
+                    continue
+        
+        if not icon_set:
+            logger.error("Could not load application icon from any of the expected paths")
     
     def _create_ui_components(self, main_layout):
         """Create and integrate all UI components."""
@@ -757,7 +799,7 @@ class MainWindow(QMainWindow):
         logger.info("Opening new connection dialog")
         
         # Show connection dialog
-        from .dialogs import ConnectionDialog
+        from ..dialogs.dialogs import ConnectionDialog
         dialog = ConnectionDialog(self)
         
         if dialog.exec() == QDialog.Accepted:
@@ -799,7 +841,7 @@ class MainWindow(QMainWindow):
             current_connection = connection_info.get('connection_string', '')
         
         # Show connection dialog with current connection string
-        from .dialogs import ConnectionDialog
+        from ..dialogs.dialogs import ConnectionDialog
         dialog = ConnectionDialog(self, current_connection)
         
         if dialog.exec() == QDialog.Accepted:
@@ -1358,7 +1400,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Opening document viewer for document at row {row}")
         
         # Create and show document viewer dialog
-        from .dialogs import DocumentViewerDialog
+        from ..dialogs.dialogs import DocumentViewerDialog
         dialog = DocumentViewerDialog(document, self)
         dialog.exec()
     
@@ -1384,7 +1426,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Opening document editor for document at row {row}")
         
         # Create and show document editor dialog
-        from .dialogs import EditDocumentDialog
+        from ..dialogs.dialogs import EditDocumentDialog
         dialog = EditDocumentDialog(document, self.current_database, self.current_collection, self)
         if dialog.exec() == QDialog.Accepted:
             updated_document = dialog.get_document()
@@ -1494,7 +1536,7 @@ class MainWindow(QMainWindow):
         logger.info(f"Opening insert document dialog for {self.current_database}/{self.current_collection}")
         
         # Show insert document dialog
-        from .dialogs import InsertDocumentDialog
+        from ..dialogs.dialogs import InsertDocumentDialog
         dialog = InsertDocumentDialog(self.current_database, self.current_collection, self)
         
         if dialog.exec() == QDialog.Accepted:
