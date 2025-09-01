@@ -679,14 +679,25 @@ class DataTable(QObject):
         # Get the item at the clicked position
         item = self.documents_table.itemAt(position)
         if not item:
+            logger.debug("No item found at right-click position")
             return
         
-        # Get the current row
-        current_row = self.documents_table.currentRow()
-        if current_row < 0:
+        # Get the row that was right-clicked
+        clicked_row = item.row()
+        logger.debug(f"Right-clicked on row {clicked_row}")
+        
+        # Set the clicked row as the current selection to ensure context menu actions target the correct document
+        self.documents_table.setCurrentCell(clicked_row, 0)
+        
+        # Get the document data for the clicked row
+        document = self.get_document_by_row(clicked_row)
+        if not document:
+            logger.warning(f"No document data found for row {clicked_row}")
             return
         
-        logger.debug(f"Showing context menu for document at row {current_row}")
+        # Log which document is being targeted
+        document_id = document.get("_id", "Unknown")
+        logger.info(f"Context menu for document at row {clicked_row}, _id: {document_id}")
         
         # Create context menu
         context_menu = QMenu(self.documents_table)
@@ -694,19 +705,19 @@ class DataTable(QObject):
         
         # View Document action
         view_action = QAction(fa.icon('fa6s.eye', color='#3b82f6'), "View Document", context_menu)
-        view_action.triggered.connect(lambda: self._handle_view_document(current_row))
+        view_action.triggered.connect(lambda: self._handle_view_document(clicked_row))
         context_menu.addAction(view_action)
         
         context_menu.addSeparator()
         
         # Edit Document action
         edit_action = QAction(fa.icon('fa6s.pen', color='#10b981'), "Edit Document", context_menu)
-        edit_action.triggered.connect(lambda: self._handle_edit_document(current_row))
+        edit_action.triggered.connect(lambda: self._handle_edit_document(clicked_row))
         context_menu.addAction(edit_action)
         
         # Delete Document action
         delete_action = QAction(fa.icon('fa6s.trash', color='#ef4444'), "Delete Document", context_menu)
-        delete_action.triggered.connect(lambda: self._handle_delete_document(current_row))
+        delete_action.triggered.connect(lambda: self._handle_delete_document(clicked_row))
         context_menu.addAction(delete_action)
         
         # Show the context menu close to the clicked item
@@ -737,5 +748,13 @@ class DataTable(QObject):
         """Handle delete document action with logging."""
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Delete document requested for row {row}")
+        
+        # Get the document data for the row
+        document = self.get_document_by_row(row)
+        if document:
+            document_id = document.get("_id", "Unknown")
+            logger.info(f"Delete document requested for row {row}, _id: {document_id}")
+        else:
+            logger.warning(f"No document data found for row {row}")
+        
         self.delete_document_requested.emit({"row": row})

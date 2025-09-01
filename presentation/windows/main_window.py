@@ -1730,37 +1730,62 @@ class MainWindow(QMainWindow):
         import logging
         logger = logging.getLogger(__name__)
         
-        row = document_data.get("row", -1)
-        logger.info(f"Delete document requested for row {row}")
-        
         if not self.current_database or not self.current_collection:
             MessageBoxHelper.warning(self, "Warning", "No collection selected.")
             return
         
-        # Get the document data for the selected row
-        document = self.document_view_manager.get_document_by_row(row)
+        # Handle both row-based (from DataTable) and index-based (from ObjectView) requests
+        row = document_data.get("row", -1)
+        index = document_data.get("index", -1)
+        
+        if row >= 0:
+            # DataTable context menu - get document by row
+            document = self.document_view_manager.get_document_by_row(row)
+            source_info = f"row {row}"
+            logger.info(f"Delete document requested for {source_info}")
+        elif index >= 0:
+            # ObjectView context menu - get document by index
+            document = self.document_view_manager.get_document_by_index(index)
+            source_info = f"index {index}"
+            logger.info(f"Delete document requested for {source_info}")
+        else:
+            logger.error("Invalid document data received: neither row nor index specified")
+            MessageBoxHelper.warning(self, "Warning", "Invalid document selection.")
+            return
+        
         if not document:
-            logger.error(f"No document found at row {row}")
-            MessageBoxHelper.warning(self, "Warning", "No document found at the selected row.")
+            logger.error(f"No document found at {source_info}")
+            MessageBoxHelper.warning(self, "Warning", f"No document found at {source_info}.")
             return
         
         # Get the document _id
         document_id = document.get("_id")
         if not document_id:
-            logger.error(f"Document at row {row} has no _id field")
+            logger.error(f"Document at {source_info} has no _id field")
             MessageBoxHelper.warning(self, "Warning", "Document has no _id field and cannot be deleted.")
             return
         
-        logger.info(f"Attempting to delete document with _id: {document_id}")
+        # Create a more informative confirmation message
+        document_preview = self._create_document_preview(document)
+        confirmation_message = (
+            f"Are you sure you want to delete this document?\n\n"
+            f"Database: {self.current_database}\n"
+            f"Collection: {self.current_collection}\n"
+            f"Document ID: {document_id}\n"
+            f"Location: {source_info}\n\n"
+            f"Document Preview:\n{document_preview}"
+        )
+        
+        logger.info(f"Attempting to delete document with _id: {document_id} from {source_info}")
         
         reply = MessageBoxHelper.question(
             self,
-            "Confirm Delete",
-            f"Are you sure you want to delete the document at row {row}?\n\nDocument ID: {document_id}"
+            "Confirm Delete Document",
+            confirmation_message
         )
         
         if reply:
-            logger.info(f"User confirmed deletion of document with _id: {document_id}")
+            logger.info(f"User confirmed deletion of document with _id: {document_id} from {source_info}")
             
             # Delete the document from MongoDB
             success, message = self.mongo_service.delete_document_by_id(
@@ -1770,15 +1795,65 @@ class MainWindow(QMainWindow):
             )
             
             if success:
-                logger.info(f"Successfully deleted document with _id: {document_id}")
-                MessageBoxHelper.information(self, "Success", f"Document deleted successfully.\n\n{message}")
-                # Refresh the documents to update the table
+                logger.info(f"Successfully deleted document with _id: {document_id} from {source_info}")
+                MessageBoxHelper.information(
+                    self, 
+                    "Success", 
+                    f"Document deleted successfully.\n\n"
+                    f"Database: {self.current_database}\n"
+                    f"Collection: {self.current_collection}\n"
+                    f"Document ID: {document_id}\n"
+                    f"Location: {source_info}\n\n"
+                    f"{message}"
+                )
+                # Refresh the documents to update the view
                 self.refresh_documents()
             else:
-                logger.error(f"Failed to delete document with _id: {document_id} - {message}")
-                MessageBoxHelper.critical(self, "Error", f"Failed to delete document.\n\n{message}")
+                logger.error(f"Failed to delete document with _id: {document_id} from {source_info} - {message}")
+                MessageBoxHelper.critical(
+                    self, 
+                    "Error", 
+                    f"Failed to delete document.\n\n"
+                    f"Database: {self.current_database}\n"
+                    f"Collection: {self.current_collection}\n"
+                    f"Document ID: {document_id}\n"
+                    f"Location: {source_info}\n\n"
+                    f"Error: {message}"
+                )
         else:
-            logger.info("User cancelled document deletion")
+            logger.info(f"User cancelled deletion of document with _id: {document_id} from {source_info}")
+    
+    def _create_document_preview(self, document: dict) -> str:
+        """Create a preview of the document for confirmation dialogs."""
+        try:
+            # Show key fields for identification
+            preview_parts = []
+            
+            # Always show _id if present
+            if "_id" in document:
+                preview_parts.append(f"_id: {document['_id']}")
+            
+            # Show a few other key fields (limit to avoid very long previews)
+            other_fields = [k for k in document.keys() if k != "_id"][:5]
+            for field in other_fields:
+                value = document[field]
+                if isinstance(value, str) and len(value) > 50:
+                    value = value[:47] + "..."
+                elif isinstance(value, (dict, list)):
+                    value = f"{{ {len(value)} items }}"
+                preview_parts.append(f"{field}: {value}")
+            
+            # If there are more fields, indicate that
+            if len(document) > 6:
+                preview_parts.append(f"... and {len(document) - 6} more fields")
+            
+            return "\n".join(preview_parts)
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Error creating document preview: {e}")
+            return f"Error creating preview: {str(e)}"
     
     def on_insert_document(self):
         """Handle insert document toolbar action."""

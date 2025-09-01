@@ -303,6 +303,7 @@ class DocumentWidget(QFrame):
     json_edited = Signal(int)  # Emits document index when JSON is edited
     json_saved = Signal(int)  # Emits document index when JSON is saved
     json_cancelled = Signal(int)  # Emits document index when JSON editing is cancelled
+    delete_document_requested = Signal(dict)  # Emits document data for deletion
     
     def __init__(self, document: Dict[str, Any], index: int, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -326,11 +327,11 @@ class DocumentWidget(QFrame):
                 background-color: #ffffff;
                 margin: 4px;
             }
-            QFrame:hover {
-                border-color: #3b82f6;
-                border-width: 2px;
-            }
         """)
+        
+        # Enable context menu for right-click actions
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
         
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
@@ -561,6 +562,73 @@ class DocumentWidget(QFrame):
             logger = logging.getLogger(__name__)
             logger.warning(f"Error parsing edited JSON: {e}")
         return None
+    
+    def _show_context_menu(self, position: Any) -> None:
+        """Show context menu for document operations."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Log which document is being targeted
+        document_id = self.document.get("_id", "Unknown")
+        logger.info(f"Context menu for document at index {self.index}, _id: {document_id}")
+        
+        # Create context menu
+        context_menu = QMenu(self)
+        
+        # View Document action
+        view_action = QAction(fa.icon('fa6s.eye', color='#3b82f6'), "View Document", context_menu)
+        view_action.triggered.connect(lambda: self._handle_view_document())
+        context_menu.addAction(view_action)
+        
+        context_menu.addSeparator()
+        
+        # Edit Document action
+        edit_action = QAction(fa.icon('fa6s.pen', color='#10b981'), "Edit Document", context_menu)
+        edit_action.triggered.connect(lambda: self._handle_edit_document())
+        context_menu.addAction(edit_action)
+        
+        # Delete Document action
+        delete_action = QAction(fa.icon('fa6s.trash', color='#ef4444'), "Delete Document", context_menu)
+        delete_action.triggered.connect(lambda: self._handle_delete_document())
+        context_menu.addAction(delete_action)
+        
+        # Show the context menu at the cursor position
+        if context_menu.actions():
+            global_pos = self.mapToGlobal(position)
+            context_menu.exec_(global_pos)
+    
+    def _handle_view_document(self) -> None:
+        """Handle view document action."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"View document requested for document at index {self.index}")
+        self.document_selected.emit(self.index)
+    
+    def _handle_edit_document(self) -> None:
+        """Handle edit document action."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Edit document requested for document at index {self.index}")
+        # Enable editing mode
+        self._enable_editing()
+    
+    def _handle_delete_document(self) -> None:
+        """Handle delete document action."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Get the document data for the index
+        document_id = self.document.get("_id", "Unknown")
+        logger.info(f"Delete document requested for document at index {self.index}, _id: {document_id}")
+        
+        # Emit delete signal
+        self.delete_document_requested.emit({"index": self.index})
+    
+    def _enable_editing(self) -> None:
+        """Enable editing mode for the document."""
+        if self.json_editor:
+            self.json_editor.setFocus()
+            self._update_action_buttons_visibility()
 
 
 class ObjectView(QObject):
@@ -690,6 +758,13 @@ class ObjectView(QObject):
         # This can be used for tracking cancellations
         pass
     
+    def _on_delete_document_requested(self, document: Dict[str, Any]) -> None:
+        """Handle delete document request."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"User requested to delete document: {document}")
+        self.delete_document_requested.emit(document)
+    
     def get_widget(self) -> QWidget | None:
         """Get the object view widget."""
         return self.widget
@@ -765,6 +840,7 @@ class ObjectView(QObject):
             doc_widget.json_edited.connect(self._on_json_edited)
             doc_widget.json_saved.connect(self._on_json_saved)
             doc_widget.json_cancelled.connect(self._on_json_cancelled)
+            doc_widget.delete_document_requested.connect(self._on_delete_document_requested)
             
             # Add to layout (before the stretch)
             self.scroll_layout.insertWidget(self.scroll_layout.count() - 1, doc_widget)
