@@ -268,8 +268,12 @@ class MainWindow(QMainWindow):
         """Connect menu actions to their handlers."""
         self.menu_bar_component.connect_action('new_connection', self.on_new_connection)
         self.menu_bar_component.connect_action('open_connection', self.on_open_connection)
-        self.menu_bar_component.connect_action('export_data', self.on_export_data)
-        self.menu_bar_component.connect_action('import_data', self.on_import_data)
+        # Collection-level import/export
+        self.menu_bar_component.connect_action('export_collection', self.on_export_data)
+        self.menu_bar_component.connect_action('import_collection', self.on_import_data)
+        # Database-level import/export
+        self.menu_bar_component.connect_action('export_database', self.on_export_database)
+        self.menu_bar_component.connect_action('import_database', self.on_import_database)
         self.menu_bar_component.connect_action('exit', self.close)
         self.menu_bar_component.connect_action('create_database', self.on_create_database)
         self.menu_bar_component.connect_action('list_databases', self.on_list_databases)
@@ -279,6 +283,7 @@ class MainWindow(QMainWindow):
         self.menu_bar_component.connect_action('refresh', self.refresh_databases)
         self.menu_bar_component.connect_action('query_builder', self.on_query_builder)
         self.menu_bar_component.connect_action('performance_monitor', self.on_performance_monitor)
+        self.menu_bar_component.connect_action('export_schema', self.on_export_schema)
         self.menu_bar_component.connect_action('settings', self.on_settings)
         self.menu_bar_component.connect_action('documentation', self.on_documentation)
         self.menu_bar_component.connect_action('about', self.show_about)
@@ -1386,6 +1391,31 @@ class MainWindow(QMainWindow):
             "• Slow query analysis"
         )
     
+    def on_export_schema(self):
+        """Handle export schema menu action."""
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        
+        if not self.current_database:
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
+            return
+        
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Opening export schema dialog for database: {self.current_database}")
+        
+        # Import and show export schema dialog
+        from ..dialogs.export_schema_dialog import ExportSchemaDialog
+        dialog = ExportSchemaDialog(self, self.mongo_service, self.current_database)
+        
+        if dialog.exec() == QDialog.Accepted:
+            export_info = dialog.get_export_info()
+            if export_info:
+                logger.info(f"Schema export completed: {export_info}")
+        else:
+            logger.info("User cancelled schema export")
+
     def on_settings(self):
         """Handle settings menu action."""
         # Show settings dialog
@@ -1971,3 +2001,27 @@ class MainWindow(QMainWindow):
         else:
             logger.info("MongoDB not connected, accepting close event")
             event.accept()
+
+    def on_export_database(self):
+        """Export the entire selected database (all collections and documents)."""
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        if not self.current_database:
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
+            return
+        from ..dialogs.export_database_dialog import ExportDatabaseDialog
+        dialog = ExportDatabaseDialog(self, self.mongo_service, self.current_database)
+        dialog.exec()
+
+    def on_import_database(self):
+        """Import a database dump (JSON/BSON/ZIP) into the selected database."""
+        if not self.mongo_service.is_connected():
+            MessageBoxHelper.warning(self, "Warning", "Please connect to MongoDB first.")
+            return
+        if not self.current_database:
+            MessageBoxHelper.warning(self, "Warning", "Please select a database first.")
+            return
+        from ..dialogs.import_database_dialog import ImportDatabaseDialog
+        dialog = ImportDatabaseDialog(self, self.mongo_service, self.current_database)
+        dialog.exec()

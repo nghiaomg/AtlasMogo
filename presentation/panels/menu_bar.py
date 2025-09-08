@@ -51,18 +51,31 @@ class MenuBar(QObject):
         
         file_menu.addSeparator()
         
-        # Data operations
-        export_action = QAction("&Export Data", self.parent)
-        export_action.setShortcut(QKeySequence("Ctrl+E"))
-        export_action.setStatusTip("Export data to file")
-        self.actions['export_data'] = export_action
-        file_menu.addAction(export_action)
-        
-        import_action = QAction("&Import Data", self.parent)
-        import_action.setShortcut(QKeySequence("Ctrl+I"))
-        import_action.setStatusTip("Import data from file")
-        self.actions['import_data'] = import_action
-        file_menu.addAction(import_action)
+        # Collection Data operations
+        export_collection_action = QAction("Export &Collection", self.parent)
+        export_collection_action.setShortcut(QKeySequence("Ctrl+E"))
+        export_collection_action.setStatusTip("Export data from a single collection")
+        self.actions['export_collection'] = export_collection_action
+        file_menu.addAction(export_collection_action)
+
+        import_collection_action = QAction("Import &Collection", self.parent)
+        import_collection_action.setShortcut(QKeySequence("Ctrl+I"))
+        import_collection_action.setStatusTip("Import data into a single collection")
+        self.actions['import_collection'] = import_collection_action
+        file_menu.addAction(import_collection_action)
+
+        file_menu.addSeparator()
+
+        # Database operations
+        export_db_action = QAction(fa.icon('fa6s.database'), "Export &Database", self.parent)
+        export_db_action.setStatusTip("Export the entire selected database")
+        self.actions['export_database'] = export_db_action
+        file_menu.addAction(export_db_action)
+
+        import_db_action = QAction(fa.icon('fa6s.database'), "Import &Database", self.parent)
+        import_db_action.setStatusTip("Import data into the selected database")
+        self.actions['import_database'] = import_db_action
+        file_menu.addAction(import_db_action)
         
         file_menu.addSeparator()
         
@@ -137,6 +150,15 @@ class MenuBar(QObject):
         performance_action.setStatusTip("Open performance monitoring tool")
         self.actions['performance_monitor'] = performance_action
         tools_menu.addAction(performance_action)
+        
+        tools_menu.addSeparator()
+        
+        # Schema export
+        export_schema_action = QAction(fa.icon('fa6s.file-export'), "Export &Schema", self.parent)
+        export_schema_action.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        export_schema_action.setStatusTip("Export database schema to JSON, YAML, or Markdown")
+        self.actions['export_schema'] = export_schema_action
+        tools_menu.addAction(export_schema_action)
         
         tools_menu.addSeparator()
         

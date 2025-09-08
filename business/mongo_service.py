@@ -459,3 +459,26 @@ class MongoService:
         except Exception as e:
             logger.error(f"Error deleting database: {e}")
             return False, f"Delete database error: {str(e)}"
+    
+    def analyze_database_schema(self, database_name: str, sample_size: int = 100) -> Dict[str, Dict[str, Any]]:
+        """
+        Analyze the schema of all collections in a database.
+        
+        Args:
+            database_name: Name of the database
+            sample_size: Number of documents to sample per collection
+            
+        Returns:
+            Dictionary mapping collection names to their schema structures
+        """
+        if not self._repository:
+            logger.error("Not connected to MongoDB")
+            return {}
+        
+        try:
+            from .schema_analyzer import SchemaAnalyzer
+            analyzer = SchemaAnalyzer(self)
+            return analyzer.analyze_database_schema(database_name, sample_size)
+        except Exception as e:
+            logger.error(f"Error analyzing database schema: {e}")
+            return {}

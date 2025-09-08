@@ -45,6 +45,22 @@ AtlasMogo is a modern, intuitive MongoDB management tool that provides a clean i
   - View collection statistics and document counts
   - Refresh and reload operations
 
+- **🧹 Bulk Delete Documents (New)**
+  - Delete multiple documents at once in both Table View and JSON/Object View
+  - Confirmation dialog and toast feedback
+
+- **📤 Export Database (New)**
+  - Export entire database (all collections + documents)
+  - Formats: JSON (per-collection files), BSON, optional ZIP compression
+
+- **📥 Import Database (New)**
+  - Import from JSON/BSON/ZIP or a directory with per-collection files
+  - Per-collection overwrite prompts with progress feedback
+
+- **📘 Export Schema (New)**
+  - Export database schema (all collections) to JSON / YAML / Markdown
+  - Markdown output includes TOC, field summaries, and formatted code blocks
+
 - **🎨 Professional UI/UX**
   - Intuitive dialogs with styled buttons (Save/Cancel, Yes/No)
   - Consistent design language throughout the application
@@ -91,6 +107,19 @@ python main.py
    - **Object View**: Edit JSON directly with real-time validation
 4. **Save Changes**: Click the green **Save** button or **Cancel** to discard
 
+### Bulk Delete Documents (New)
+- **Table View**: Select multiple rows → right-click or toolbar → **Delete Selected** → Confirm.
+- **Object View (JSON)**: Select multiple document blocks → **Delete Selected** → Confirm.
+- A toast will show: “Successfully deleted X documents”.
+
+### Export / Import Database (New)
+- **Export Database**: File → **Export Database** → choose format (JSON/BSON) and optional ZIP → choose destination.
+- **Import Database**: File → **Import Database** → pick JSON/BSON/ZIP or directory → choose per-collection overwrite → import with progress.
+
+### Export Schema (New)
+- Tools → **Export Schema** → pick format (JSON/YAML/Markdown) → save.
+- Markdown includes overview, field tables, and a formatted schema block per collection.
+
 ### Collection Operations
 - **Create Collection**: Right-click on a database → **Create Collection**
 - **Rename Collection**: Right-click on collection → **Rename**
@@ -103,6 +132,10 @@ python main.py
 - **Real-time Validation**: JSON syntax validation with error highlighting and tooltips
 - **Inline Editing**: Direct JSON editing without expand/collapse mechanisms
 - **Toast Notifications**: Success/error feedback for user actions
+- **Bulk Delete Documents**: Multi-select delete in Table and JSON/Object views
+- **Export Database**: Full database export (JSON/BSON, optional ZIP)
+- **Import Database**: Restore from JSON/BSON/ZIP with overwrite prompts
+- **Export Schema**: Output database schema to JSON/YAML/Markdown
 
 ### 🐛 Bug Fixes
 - **Dialog System**: Fixed Save/Cancel, Yes/No buttons functionality
@@ -125,7 +158,6 @@ python main.py
 
 - **Customization Options**: Themes, layouts, and preferences
 - **Query Builder**: Visual query construction interface
-- **Export/Import**: Collection backup and restore functionality
 - **Performance**: Lazy loading for large collections
 - **Plugins**: Extension system for custom functionality
 

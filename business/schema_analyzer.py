@@ -9,6 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict, Counter
 
+from bson import ObjectId
 from .mongo_service import MongoService
 
 
@@ -221,6 +222,148 @@ class SchemaAnalyzer:
             self._field_values_cache.clear()
             self.logger.debug("Cleared all schema cache")
     
+    def analyze_database_schema(self, database_name: str, sample_size: int = 100) -> Dict[str, Dict[str, Any]]:
+        """
+        Analyze the schema of all collections in a database.
+        
+        Args:
+            database_name: Name of the database
+            sample_size: Number of documents to sample per collection
+            
+        Returns:
+            Dictionary mapping collection names to their schema structures
+        """
+        try:
+            self.logger.info(f"Analyzing database schema for {database_name}")
+            
+            # Get all collections in the database
+            collections = self.mongo_service.get_collections(database_name)
+            
+            if not collections:
+                self.logger.warning(f"No collections found in database {database_name}")
+                return {}
+            
+            database_schema = {}
+            
+            for collection_name in collections:
+                try:
+                    self.logger.debug(f"Analyzing collection {collection_name}")
+                    
+                    # Get sample documents
+                    documents = self.mongo_service.find_documents(
+                        database_name, collection_name, "", sample_size
+                    )
+                    
+                    if not documents:
+                        self.logger.debug(f"No documents in collection {collection_name}")
+                        database_schema[collection_name] = {}
+                        continue
+                    
+                    # Analyze and convert to simplified schema format
+                    collection_schema = self._convert_to_export_schema(documents)
+                    database_schema[collection_name] = collection_schema
+                    
+                except Exception as e:
+                    self.logger.error(f"Error analyzing collection {collection_name}: {e}")
+                    database_schema[collection_name] = {}
+            
+            self.logger.info(f"Database schema analysis completed for {database_name}: {len(database_schema)} collections")
+            return database_schema
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing database schema for {database_name}: {e}")
+            return {}
+    
+    def _convert_to_export_schema(self, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Convert documents to a simplified schema format suitable for export.
+        
+        Args:
+            documents: List of MongoDB documents
+            
+        Returns:
+            Simplified schema dictionary with field types
+        """
+        schema = {}
+        
+        for doc in documents:
+            self._extract_schema_from_document(doc, schema)
+        
+        return schema
+    
+    def _extract_schema_from_document(self, doc: Dict[str, Any], schema: Dict[str, Any], prefix: str = "") -> None:
+        """
+        Recursively extract schema information from a document.
+        
+        Args:
+            doc: Document to analyze
+            schema: Schema dictionary to populate
+            prefix: Field path prefix for nested objects
+        """
+        for key, value in doc.items():
+            field_path = f"{prefix}.{key}" if prefix else key
+            
+            if value is None:
+                schema[field_path] = "null"
+            elif isinstance(value, ObjectId):
+                schema[field_path] = "ObjectId"
+            elif isinstance(value, bool):
+                schema[field_path] = "boolean"
+            elif isinstance(value, int):
+                schema[field_path] = "int"
+            elif isinstance(value, float):
+                schema[field_path] = "float"
+            elif isinstance(value, str):
+                schema[field_path] = "string"
+            elif isinstance(value, dict):
+                # For nested objects, create a nested structure
+                if field_path not in schema:
+                    schema[field_path] = {}
+                if isinstance(schema[field_path], dict):
+                    self._extract_schema_from_document(value, schema[field_path])
+                else:
+                    # Convert to dict if it was a primitive type before
+                    nested_schema = {}
+                    self._extract_schema_from_document(value, nested_schema)
+                    schema[field_path] = nested_schema
+            elif isinstance(value, list):
+                if not value:
+                    schema[field_path] = "array"
+                else:
+                    # Analyze array elements
+                    first_element = value[0]
+                    if isinstance(first_element, dict):
+                        # Array of objects
+                        array_schema = {}
+                        for item in value[:5]:  # Sample first 5 items
+                            if isinstance(item, dict):
+                                self._extract_schema_from_document(item, array_schema)
+                        schema[field_path] = [array_schema] if array_schema else "array"
+                    else:
+                        # Array of primitives
+                        element_type = self._get_primitive_type(first_element)
+                        schema[field_path] = [element_type]
+            else:
+                # Handle other types (datetime, etc.)
+                schema[field_path] = type(value).__name__
+    
+    def _get_primitive_type(self, value: Any) -> str:
+        """Get the type name for primitive values."""
+        if value is None:
+            return "null"
+        elif isinstance(value, ObjectId):
+            return "ObjectId"
+        elif isinstance(value, bool):
+            return "boolean"
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, float):
+            return "float"
+        elif isinstance(value, str):
+            return "string"
+        else:
+            return type(value).__name__
+
     def get_schema_summary(self, database_name: str, collection_name: str) -> str:
         """Get a human-readable summary of the collection schema."""
         schema = self.analyze_collection_schema(database_name, collection_name)
