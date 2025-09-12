@@ -4,6 +4,7 @@ Dialog for exporting an entire database to JSON, BSON, or a compressed ZIP.
 """
 
 import os
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtWidgets import (

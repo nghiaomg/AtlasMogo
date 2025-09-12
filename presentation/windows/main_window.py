@@ -2024,4 +2024,6 @@ class MainWindow(QMainWindow):
             return
         from ..dialogs.import_database_dialog import ImportDatabaseDialog
         dialog = ImportDatabaseDialog(self, self.mongo_service, self.current_database)
+        # 连接刷新信号
+        dialog.refresh_requested.connect(self.refresh_databases)
         dialog.exec()

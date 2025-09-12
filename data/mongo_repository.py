@@ -210,6 +210,34 @@ class MongoRepository:
             logger.error(f"Error inserting document into {collection_name}: {e}")
             return None
     
+    def insert_many(self, database_name: str, collection_name: str, 
+                   documents: List[Dict[str, Any]]) -> int:
+        """
+        Insert multiple documents into a collection.
+        
+        Args:
+            database_name: Name of the database
+            collection_name: Name of the collection
+            documents: List of documents to insert
+            
+        Returns:
+            Number of documents inserted
+        """
+        try:
+            db = self._client[database_name]
+            collection = db[collection_name]
+            
+            if not documents:
+                logger.warning(f"No documents to insert into {collection_name}")
+                return 0
+            
+            result = collection.insert_many(documents)
+            logger.info(f"Inserted {len(result.inserted_ids)} documents into {collection_name}")
+            return len(result.inserted_ids)
+        except PyMongoError as e:
+            logger.error(f"Error inserting documents into {collection_name}: {e}")
+            return 0
+    
     def update_document(self, database_name: str, collection_name: str, 
                        filter_query: Dict[str, Any], update_data: Dict[str, Any]) -> bool:
         """

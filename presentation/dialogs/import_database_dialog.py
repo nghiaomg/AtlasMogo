@@ -19,6 +19,7 @@ from presentation.dialogs.toast_notification import ToastManager
 
 class DatabaseImportWorker(QThread):
     import_completed = Signal(bool, str)
+    import_success = Signal()
 
     def __init__(self, mongo_service, database_name: str, source_path: str, overwrite_policy: dict[str, bool]):
         super().__init__()
@@ -30,11 +31,15 @@ class DatabaseImportWorker(QThread):
         try:
             success, message = self.importer.import_database(self.source_path, self.overwrite_policy)
             self.import_completed.emit(success, message)
+            if success:
+                self.import_success.emit()
         except Exception as e:
             self.import_completed.emit(False, f"An unexpected error occurred: {e}")
 
 
 class ImportDatabaseDialog(QDialog):
+    refresh_requested = Signal()
+    
     def __init__(self, parent, mongo_service, database_name: str):
         super().__init__(parent)
         self.mongo_service = mongo_service
@@ -51,7 +56,6 @@ class ImportDatabaseDialog(QDialog):
     def _build_ui(self):
         layout = QVBoxLayout(self)
 
-        # Source path
         src_group = QGroupBox("Source")
         src_layout = QHBoxLayout(src_group)
         self.path_edit = QLineEdit()
@@ -63,7 +67,6 @@ class ImportDatabaseDialog(QDialog):
 
         self._browse_btn = browse_btn
 
-        # Overwrite table (appears after selecting a source)
         self.table = QTableWidget(0, 2)
         self.table.setHorizontalHeaderLabels(["Collection", "Overwrite if exists"])
         header = self.table.horizontalHeader()
@@ -72,12 +75,10 @@ class ImportDatabaseDialog(QDialog):
         self.table.setVisible(False)
         layout.addWidget(self.table)
 
-        # Progress bar
         self.progress = QProgressBar()
         self.progress.setVisible(False)
         layout.addWidget(self.progress)
 
-        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         self.import_btn = QPushButton("Import")
@@ -92,33 +93,30 @@ class ImportDatabaseDialog(QDialog):
         self.cancel_btn.clicked.connect(self.reject)
 
     def _choose_source(self):
-        # Allow both file and directory
         files_filter = "Supported Files (*.json *.bson *.zip);;All Files (*)"
         file_path, _ = QFileDialog.getOpenFileName(self, "Select file (or Cancel to pick folder)", os.path.expanduser("~/Documents"), files_filter)
         if file_path:
             self.path_edit.setText(file_path)
             self._prepare_overwrite_table(Path(file_path).parent)
-            return
-        # If user cancels, allow directory
+            return  
         dir_path = QFileDialog.getExistingDirectory(self, "Select folder", os.path.expanduser("~/Documents"))
         if dir_path:
             self.path_edit.setText(dir_path)
             self._prepare_overwrite_table(dir_path)
 
     def _prepare_overwrite_table(self, directory: str | Path):
-        # Simple scan: list plausible collection files (*.json/*.bson)
         self.table.setRowCount(0)
         found = []
         for p in Path(directory).rglob('*'):
             if p.is_file() and p.suffix.lower() in ('.json', '.bson'):
                 found.append(p.stem)
-        # Unique collection names
         collections = sorted(set(found))
         self.table.setVisible(bool(collections))
         self.table.setRowCount(len(collections))
         for row, name in enumerate(collections):
             self.table.setItem(row, 0, QTableWidgetItem(name))
             chk = QCheckBox()
+            chk.setChecked(True) 
             self.table.setCellWidget(row, 1, chk)
 
     def _start_import(self):
@@ -138,6 +136,7 @@ class ImportDatabaseDialog(QDialog):
 
         self.import_worker = DatabaseImportWorker(self.mongo_service, self.database_name, src, overwrite)
         self.import_worker.import_completed.connect(self._on_import_finished)
+        self.import_worker.import_success.connect(self._on_import_success)
         self.import_worker.start()
 
     def _on_import_finished(self, success: bool, message: str):
@@ -152,6 +151,10 @@ class ImportDatabaseDialog(QDialog):
         else:
             tm.show_error(message, self.parent(), duration=6000)
             QMessageBox.critical(self, "Import Failed", message)
+
+    def _on_import_success(self):
+        """处理导入成功，发出刷新信号"""
+        self.refresh_requested.emit()
 
     def _set_enabled(self, enabled: bool):
         for w in (self._browse_btn, self.import_btn, self.path_edit):
